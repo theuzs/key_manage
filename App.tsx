@@ -40,6 +40,7 @@ export default function App() {
         <Text style={styles.headerText}>Gerenciador de Chave</Text>
       </View>
 
+
       {/* Conteúdo com rolagem */}
       <ScrollView contentContainerStyle={styles.content}>
         {session && session.user ? (
