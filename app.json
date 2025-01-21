@@ -19,10 +19,21 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.anonymous.expousermanagement"
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
+"web": {
+  "favicon": "./assets/favicon.png",
+  "build": {
+    "babel": {
+      "include": ["src"]
     }
+  },
+  "platforms": ["ios", "android", "web"],
+  "web.splashScreen": {
+    "image": "./assets/splash-icon.png",
+    "backgroundColor": "#ffffff"
+  }
+}
   }
 }
