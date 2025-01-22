@@ -62,7 +62,17 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
         throw new Error('No image uri!') // Realistically, this should never happen, but just in case...
       }
 
-      const arraybuffer = await fetch(image.uri).then((res) => res.arrayBuffer())
+      let arraybuffer: ArrayBuffer
+      // Handle file on web differently
+      if (image.uri.startsWith('file://')) {
+        // For mobile, we can continue as before.
+        arraybuffer = await fetch(image.uri).then((res) => res.arrayBuffer())
+      } else {
+        // For web, create a file object and upload
+        const response = await fetch(image.uri)
+        const blob = await response.blob()
+        arraybuffer = await blob.arrayBuffer()
+      }
 
       const fileExt = image.uri?.split('.').pop()?.toLowerCase() ?? 'jpeg'
       const path = `${Date.now()}.${fileExt}`

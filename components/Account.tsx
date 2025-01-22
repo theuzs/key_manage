@@ -1,165 +1,270 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
-import { StyleSheet, View, Alert } from 'react-native'
-import { Button, Input } from '@rneui/themed'
+import { useState, useEffect } from 'react';
+import { View, Text, TextInput, Button, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js'
-// Importando o componente Avatar
-import Avatar from './Avatar'
+import * as ImagePicker from 'expo-image-picker';
+import { Feather } from '@expo/vector-icons';
+import { ToastContainer, toast } from 'react-toastify';
+import React from 'react';
 
 export default function Account({ session }: { session: Session }) {
-  const [loading, setLoading] = useState(true)
-  const [username, setUsername] = useState('')
-  const [website, setWebsite] = useState('')
-  const [avatarUrl, setAvatarUrl] = useState('')
+  const [loading, setLoading] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [website, setWebsite] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [avatar, setAvatar] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session) getProfile()
-  }, [session])
+    if (session) {
+      getProfile();
+    }
+  }, [session]);
 
   async function getProfile() {
     try {
-      setLoading(true)
-      if (!session?.user) throw new Error('No user on the session!')
-
-      const { data, error, status } = await supabase
+      setLoading(true);
+      const { data, error } = await supabase
         .from('profiles')
-        .select(`username, website, avatar_url`)
-        .eq('id', session?.user.id)
-        .single()
-      if (error && status !== 406) {
-        throw error
-      }
+        .select('full_name, username, website, avatar_url')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) throw error;
 
       if (data) {
-        setUsername(data.username)
-        setWebsite(data.website)
-        setAvatarUrl(data.avatar_url)
+        setFullName(data.full_name);
+        setUsername(data.username);
+        setWebsite(data.website);
+        setAvatarUrl(data.avatar_url);
+        if (data.avatar_url) {
+          downloadAvatar(data.avatar_url);
+        }
       }
     } catch (error) {
-      if (error instanceof Error) {
-        Alert.alert(error.message)
-      }
+      toast.error('Erro ao carregar perfil.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  async function updateProfile({
-    username,
-    website,
-    avatar_url,
-  }: {
-    username: string
-    website: string
-    avatar_url: string
-  }) {
+  async function downloadAvatar(path: string) {
     try {
-      setLoading(true)
-      if (!session?.user) throw new Error('No user on the session!')
+      const { data, error } = await supabase.storage
+        .from('avatars') // Nome do bucket
+        .download(path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      setAvatar(url);
+    } catch (error) {
+      toast.error('Erro ao carregar avatar.');
+    }
+  }
+
+  async function updateAvatar(file: File) {
+    try {
+      setLoading(true);
+
+      const fileName = `${session.user.id}-${Date.now()}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const newAvatarUrl = publicUrlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: fileName })
+        .eq('id', session.user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(newAvatarUrl);
+      downloadAvatar(fileName);
+      toast.success('Avatar atualizado com sucesso!');
+    } catch (error) {
+      toast.error('Erro ao atualizar avatar.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function pickImage() {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const file = await fetch(result.assets[0].uri).then((res) => res.blob());
+      updateAvatar(file as File);
+    }
+  }
+
+  async function updateProfile() {
+    try {
+      setLoading(true);
 
       const updates = {
-        id: session?.user.id,
-        username,
-        website,
-        avatar_url,
-        updated_at: new Date(),
-      }
+        id: session.user.id,
+        full_name: fullName,
+        username: username,
+        website: website,
+        updated_at: new Date().toISOString(),
+      };
 
-      const { error } = await supabase.from('profiles').upsert(updates)
+      const { error } = await supabase.from('profiles').upsert(updates);
+      if (error) throw error;
 
-      if (error) {
-        throw error
-      }
+      toast.success('Perfil atualizado com sucesso!');
     } catch (error) {
-      if (error instanceof Error) {
-        Alert.alert(error.message)
-      }
+      toast.error('Erro ao atualizar perfil.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.form}>
-        <View style={[styles.verticallySpaced, styles.mt20]}>
-          <Input label="Email" value={session?.user?.email} disabled />
-        </View>
-        <View style={styles.verticallySpaced}>
-          <Input label="Username" value={username || ''} onChangeText={(text) => setUsername(text)} />
-        </View>
-        <View style={styles.verticallySpaced}>
-          <Input label="Website" value={website || ''} onChangeText={(text) => setWebsite(text)} />
-        </View>
-
-        <View style={[styles.verticallySpaced, styles.mt20]}>
-          <Button
-            title={loading ? 'Loading ...' : 'Update'}
-            onPress={() => updateProfile({ username, website, avatar_url: avatarUrl })}
-            disabled={loading}
-            buttonStyle={styles.button}
-          />
-        </View>
-
-        <View style={styles.verticallySpaced}>
-          <Button title="Sign Out" onPress={() => supabase.auth.signOut()} buttonStyle={styles.button} />
-        </View>
+    <>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Editar Perfil</Text>
 
         <View style={styles.avatarContainer}>
-          <Avatar
-            size={100}
-            url={avatarUrl}
-            onUpload={(url: string) => {
-              setAvatarUrl(url)
-              updateProfile({ username, website, avatar_url: url })
-            }}
+          {avatar && (
+            <Image source={{ uri: avatar }} style={styles.avatar} />
+          )}
+          <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
+            <Feather name="edit-2" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nome Completo</Text>
+          <TextInput
+            style={styles.input}
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder="Digite seu nome completo"
           />
         </View>
-      </View>
-    </View>
-  )
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nome de Usuário</Text>
+          <TextInput
+            style={styles.input}
+            value={username}
+            onChangeText={setUsername}
+            placeholder="Digite seu nome de usuário"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Website</Text>
+          <TextInput
+            style={styles.input}
+            value={website}
+            onChangeText={setWebsite}
+            placeholder="Digite seu website"
+            keyboardType="url"
+          />
+        </View>
+
+        <Button title={loading ? 'Carregando...' : 'Atualizar Perfil'} 
+        onPress={updateProfile} 
+        disabled={loading} 
+        />
+
+<View style={styles.buttonContainer}>
+  <TouchableOpacity 
+    style={styles.signOutButton} 
+    onPress={() => supabase.auth.signOut()}
+  >
+    <Text style={styles.signOutButtonText}>Sign Out</Text>
+  </TouchableOpacity>
+</View>
+
+
+
+      </ScrollView>
+
+      {/* Toast Container */}
+      <ToastContainer />
+    </>
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f4f6f9',
-    padding: 20,
+
+    flexGrow: 1,
+    paddingHorizontal: 400,
+    paddingVertical: 100,
   },
-  form: {
-    width: '100%',
-    maxWidth: 500, // Limita a largura máxima do formulário
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  inputContainer: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  verticallySpaced: {
-    paddingTop: 4,
-    paddingBottom: 4,
-    alignSelf: 'stretch',
-  },
-  mt20: {
-    marginTop: 20,
-  },
-  button: {
-    backgroundColor: '#1E90FF',
-    borderRadius: 8,
-    marginBottom: 15,
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e90ff',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   avatarContainer: {
-    alignItems: 'center',
-    marginTop: 20,
+    position: 'relative',
+    alignSelf: 'center',
+    marginBottom: 20,
   },
-})
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  editIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#1e90ff',
+    borderRadius: 15,
+    padding: 5,
+  },
+  inputGroup: {
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: 'white',
+    fontSize: 16,
+  },
+  buttonContainer: {
+    marginTop: 15,
+  },
+  signOutButton: {
+    backgroundColor: 'red',
+    borderRadius: 5,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  signOutButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  }
+});
