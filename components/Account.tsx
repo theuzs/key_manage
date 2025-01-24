@@ -136,80 +136,91 @@ export default function Account({ session }: { session: Session }) {
   }
 
   return (
-    <>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Editar Perfil</Text>
-
-        <View style={styles.avatarContainer}>
-          {avatar && (
-            <Image source={{ uri: avatar }} style={styles.avatar} />
-          )}
-          <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
-            <Feather name="edit-2" size={20} color="white" />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Nome Completo</Text>
-          <TextInput
-            style={styles.input}
-            value={fullName}
-            onChangeText={setFullName}
-            placeholder="Digite seu nome completo"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Nome de Usuário</Text>
-          <TextInput
-            style={styles.input}
-            value={username}
-            onChangeText={setUsername}
-            placeholder="Digite seu nome de usuário"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Website</Text>
-          <TextInput
-            style={styles.input}
-            value={website}
-            onChangeText={setWebsite}
-            placeholder="Digite seu website"
-            keyboardType="url"
-          />
-        </View>
-
-        <Button title={loading ? 'Carregando...' : 'Atualizar Perfil'} 
-        onPress={updateProfile} 
-        disabled={loading} 
-        />
-
-<View style={styles.buttonContainer}>
-  <TouchableOpacity 
-    style={styles.signOutButton} 
-    onPress={() => supabase.auth.signOut()}
-  >
-    <Text style={styles.signOutButtonText}>Sign Out</Text>
-  </TouchableOpacity>
-</View>
-
-
-
-      </ScrollView>
-
-      {/* Toast Container */}
-      <ToastContainer />
-    </>
-  );
+      <>
+        <ScrollView contentContainerStyle={styles.formWrapper}>
+          <View style={styles.formWrapper}>
+            <Text style={styles.title}>Editar Perfil</Text>
+    
+            <View style={styles.avatarContainer}>
+              {avatar && (
+                <Image source={{ uri: avatar }} style={styles.avatar} />
+              )}
+              <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
+                <Feather name="edit-2" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+    
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Nome Completo</Text>
+              <TextInput
+                style={styles.input}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Digite seu nome completo"
+              />
+            </View>
+    
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Nome de Usuário</Text>
+              <TextInput
+                style={styles.input}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Digite seu nome de usuário"
+              />
+            </View>
+    
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Website</Text>
+              <TextInput
+                style={styles.input}
+                value={website}
+                onChangeText={setWebsite}
+                placeholder="Digite seu website"
+                keyboardType="url"
+              />
+            </View>
+    
+            <Button
+              title={loading ? 'Carregando...' : 'Atualizar Perfil'}
+              onPress={updateProfile}
+              disabled={loading}
+            />
+    
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.signOutButton}
+                onPress={() => supabase.auth.signOut()}
+              >
+                <Text style={styles.signOutButtonText}>Sign Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+    
+        {/* Toast Container */}
+        <ToastContainer />
+      </>
+    );
+    
 }
 
 const styles = StyleSheet.create({
   container: {
-
     flexGrow: 1,
-    paddingHorizontal: 400,
-    paddingVertical: 100,
+    paddingHorizontal: 20,
+    paddingVertical: 50,
+    backgroundColor: '#f5f5f5',
+  },
+  formWrapper: {
+    backgroundColor: 'white',
+    borderRadius: 50,
+    padding: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
   title: {
     fontSize: 24,
@@ -260,11 +271,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'red',
     borderRadius: 5,
     paddingVertical: 10,
+    paddingHorizontal: 10,
     alignItems: 'center',
   },
   signOutButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  }
+  },
 });
