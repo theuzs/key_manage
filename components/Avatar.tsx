@@ -5,6 +5,7 @@ import * as ImagePicker from 'expo-image-picker'
 
 interface Props {
   size: number
+  
   url: string | null
   onUpload: (filePath: string) => void
 }
