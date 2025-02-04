@@ -1,123 +1,92 @@
-import React, { useState } from 'react'
-import { Alert, StyleSheet, View, AppState, Platform } from 'react-native'
-import { supabase } from '../lib/supabase'
-import { Button, Input } from '@rneui/themed'
-
-// Tells Supabase Auth to continuously refresh the session automatically if
-// the app is in the foreground. When this is added, you will continue to receive
-// `onAuthStateChange` events with the `TOKEN_REFRESHED` or `SIGNED_OUT` event
-// if the user's session is terminated. This should only be registered once.
-AppState.addEventListener('change', (state) => {
-  if (state === 'active') {
-    supabase.auth.startAutoRefresh()
-  } else {
-    supabase.auth.stopAutoRefresh()
-  }
-})
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { TextField, Button, Container, Paper, Typography, CircularProgress } from '@mui/material';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function Auth() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        console.log('User signed out');
+      }
+    });
+    return () => authListener.subscription.unsubscribe();
+  }, []);
 
   async function signInWithEmail() {
-    setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email,
-      password: password,
-    })
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) Alert.alert(error.message)
-    setLoading(false)
+    if (error) {
+      toast.error(`Erro: ${error.message}`);
+    } else {
+      toast.success('Login realizado com sucesso!');
+    }
+    setLoading(false);
   }
 
   async function signUpWithEmail() {
-    setLoading(true)
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.signUp({
-      email: email,
-      password: password,
-    })
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({ email, password });
 
-    if (error) Alert.alert(error.message)
-    if (!session) Alert.alert('Please check your inbox for email verification!')
-    setLoading(false)
+    if (error) {
+      toast.error(`Erro: ${error.message}`);
+    } else {
+      toast.success('Verifique seu e-mail para confirmar o cadastro!');
+    }
+    setLoading(false);
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.form}>
-        <Input
+    <Container maxWidth="xs">
+      <ToastContainer />
+      <Paper elevation={3} style={{ padding: 24, textAlign: 'center', marginTop: 50 }}>
+        <Typography variant="h5" gutterBottom>
+          Acesso ao Sistema
+        </Typography>
+        <TextField
+          fullWidth
           label="Email"
-          leftIcon={{ type: 'font-awesome', name: 'envelope' }}
-          onChangeText={(text) => setEmail(text)}
+          variant="outlined"
+          margin="normal"
           value={email}
-          placeholder="email@address.com"
-          autoCapitalize="none"
-          inputContainerStyle={styles.inputContainer}
+          onChange={(e) => setEmail(e.target.value)}
         />
-        <Input
-          label="Password"
-          leftIcon={{ type: 'font-awesome', name: 'lock' }}
-          onChangeText={(text) => setPassword(text)}
+        <TextField
+          fullWidth
+          label="Senha"
+          type="password"
+          variant="outlined"
+          margin="normal"
           value={password}
-          secureTextEntry
-          placeholder="Password"
-          autoCapitalize="none"
-          inputContainerStyle={styles.inputContainer}
+          onChange={(e) => setPassword(e.target.value)}
         />
         <Button
-          title="Acessar"
-          buttonStyle={styles.button}
+          fullWidth
+          variant="contained"
+          color="primary"
+          onClick={signInWithEmail}
           disabled={loading}
-          onPress={signInWithEmail}
-        />
+          style={{ marginTop: 16 }}
+        >
+          {loading ? <CircularProgress size={24} /> : 'Acessar'}
+        </Button>
         <Button
-          title="Primeiro Acesso"
-          type="outline"
-          buttonStyle={[styles.button, styles.outlineButton]}
+          fullWidth
+          variant="outlined"
+          color="primary"
+          onClick={signUpWithEmail}
           disabled={loading}
-          onPress={signUpWithEmail}
-        />
-      </View>
-    </View>
+          style={{ marginTop: 8 }}
+        >
+          {loading ? <CircularProgress size={24} /> : 'Primeiro Acesso'}
+        </Button>
+      </Paper>
+    </Container>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  form: {
-    width: '100%',
-    maxWidth: 400, // Limita a largura máxima para não ficar esticado no desktop
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5, // Para Android, dá um efeito de sombra
-  },
-  inputContainer: {
-    backgroundColor: '#f0f0f0', // Cor de fundo dos inputs
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  button: {
-    backgroundColor: '#1E90FF',
-    borderRadius: 8,
-    marginBottom: 15,
-  },
-  outlineButton: {
-    backgroundColor: 'transparent',
-    borderColor: '#1E90FF',
-    borderWidth: 2,
-  },
-});
