@@ -15,7 +15,12 @@ export default function Auth() {
         console.log('User signed out');
       }
     });
-    return () => authListener.subscription.unsubscribe();
+
+    return () => {
+      if (authListener?.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
   }, []);
 
   async function signInWithEmail() {
@@ -32,12 +37,49 @@ export default function Auth() {
 
   async function signUpWithEmail() {
     setLoading(true);
+
+    // Verifica se o e-mail já está cadastrado
+    const { data: existingUser, error: fetchError } = await supabase
+      .from('auth.users')
+      .select('email')
+      .eq('email', email)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      toast.error('Erro ao verificar usuário existente!');
+      setLoading(false);
+      return;
+    }
+
+    if (existingUser) {
+      toast.warn('Este e-mail já está cadastrado. Faça login ou redefina sua senha.');
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.signUp({ email, password });
 
     if (error) {
       toast.error(`Erro: ${error.message}`);
     } else {
       toast.success('Verifique seu e-mail para confirmar o cadastro!');
+    }
+    setLoading(false);
+  }
+
+  async function resetPassword() {
+    if (!email) {
+      toast.warn('Digite seu e-mail para recuperar a senha.');
+      return;
+    }
+
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+    if (error) {
+      toast.error(`Erro: ${error.message}`);
+    } else {
+      toast.success('E-mail de recuperação enviado. Verifique sua caixa de entrada!');
     }
     setLoading(false);
   }
@@ -71,7 +113,7 @@ export default function Auth() {
           variant="contained"
           color="primary"
           onClick={signInWithEmail}
-          disabled={loading}
+          disabled={loading || !email || !password}
           style={{ marginTop: 16 }}
         >
           {loading ? <CircularProgress size={24} /> : 'Acessar'}
@@ -81,10 +123,20 @@ export default function Auth() {
           variant="outlined"
           color="primary"
           onClick={signUpWithEmail}
-          disabled={loading}
+          disabled={loading || !email || !password}
           style={{ marginTop: 8 }}
         >
           {loading ? <CircularProgress size={24} /> : 'Primeiro Acesso'}
+        </Button>
+        <Button
+          fullWidth
+          variant="text"
+          color="secondary"
+          onClick={resetPassword}
+          disabled={loading}
+          style={{ marginTop: 8 }}
+        >
+          Esqueci minha senha
         </Button>
       </Paper>
     </Container>
