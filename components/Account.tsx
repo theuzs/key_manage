@@ -1,11 +1,71 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, ScrollView, Image, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
-import { Session } from '@supabase/supabase-js'
+import { Session } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
-import { ToastContainer, toast } from 'react-toastify';
-import React from 'react';
+import { showToast } from '../utils/toast'; // Importa do novo arquivo
+import { Button as MuiButton, TextField, CircularProgress } from '@mui/material';
+
+// Definindo tipos para suportar web e mobile
+type TextFieldProps = {
+  style?: object;
+  value: string;
+  onChangeText?: (text: string) => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+};
+type ButtonProps = {
+  children: React.ReactNode;
+  style?: object;
+  onClick: () => void;
+  disabled?: boolean;
+};
+type LoaderProps = { size: number | 'small' };
+
+const isWeb = Platform.OS === 'web';
+
+// Componentes condicionais como funções
+const AppTextField = ({ style, value, onChange, onChangeText, placeholder }: TextFieldProps) =>
+  isWeb ? (
+    <TextField
+      fullWidth
+      variant="outlined"
+      margin="normal"
+      value={value}
+      onChange={onChange}
+      style={style}
+      placeholder={placeholder}
+    />
+  ) : (
+    <TextInput
+      style={style}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+    />
+  );
+
+const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
+  isWeb ? (
+    <MuiButton
+      fullWidth
+      variant="contained"
+      color="primary"
+      style={style}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {children}
+    </MuiButton>
+  ) : (
+    <TouchableOpacity style={style} onPress={onClick} disabled={disabled}>
+      {children}
+    </TouchableOpacity>
+  );
+
+const AppLoader = ({ size }: LoaderProps) =>
+  isWeb ? <CircularProgress size={size} /> : <ActivityIndicator size={size} />;
 
 export default function Account({ session }: { session: Session }) {
   const [loading, setLoading] = useState(false);
@@ -33,16 +93,16 @@ export default function Account({ session }: { session: Session }) {
       if (error) throw error;
 
       if (data) {
-        setFullName(data.full_name);
-        setUsername(data.username);
-        setWebsite(data.website);
-        setAvatarUrl(data.avatar_url);
+        setFullName(data.full_name || '');
+        setUsername(data.username || '');
+        setWebsite(data.website || '');
+        setAvatarUrl(data.avatar_url || '');
         if (data.avatar_url) {
           downloadAvatar(data.avatar_url);
         }
       }
     } catch (error) {
-      toast.error('Erro ao carregar perfil.');
+      showToast('error', 'Erro ao carregar perfil.');
     } finally {
       setLoading(false);
     }
@@ -50,16 +110,14 @@ export default function Account({ session }: { session: Session }) {
 
   async function downloadAvatar(path: string) {
     try {
-      const { data, error } = await supabase.storage
-        .from('avatars') // Nome do bucket
-        .download(path);
+      const { data, error } = await supabase.storage.from('avatars').download(path);
 
       if (error) throw error;
 
       const url = URL.createObjectURL(data);
       setAvatar(url);
     } catch (error) {
-      toast.error('Erro ao carregar avatar.');
+      showToast('error', 'Erro ao carregar avatar.');
     }
   }
 
@@ -90,9 +148,9 @@ export default function Account({ session }: { session: Session }) {
 
       setAvatarUrl(newAvatarUrl);
       downloadAvatar(fileName);
-      toast.success('Avatar atualizado com sucesso!');
+      showToast('success', 'Avatar atualizado com sucesso!');
     } catch (error) {
-      toast.error('Erro ao atualizar avatar.');
+      showToast('error', 'Erro ao atualizar avatar.');
     } finally {
       setLoading(false);
     }
@@ -127,82 +185,82 @@ export default function Account({ session }: { session: Session }) {
       const { error } = await supabase.from('profiles').upsert(updates);
       if (error) throw error;
 
-      toast.success('Perfil atualizado com sucesso!');
+      showToast('success', 'Perfil atualizado com sucesso!');
     } catch (error) {
-      toast.error('Erro ao atualizar perfil.');
+      showToast('error', 'Erro ao atualizar perfil.');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-      <>
-        <ScrollView contentContainerStyle={styles.formWrapper}>
-          <View style={styles.formWrapper}>
-            <Text style={styles.title}>Editar Perfil</Text>
-    
-            <View style={styles.avatarContainer}>
-              {avatar && (
-                <Image source={{ uri: avatar }} style={styles.avatar} />
-              )}
-              <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
-                <Feather name="edit-2" size={20} color="white" />
-              </TouchableOpacity>
-            </View>
-    
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nome Completo</Text>
-              <TextInput
-                style={styles.input}
-                value={fullName}
-                onChangeText={setFullName}
-                placeholder="Digite seu nome completo"
-              />
-            </View>
-    
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nome de Usuário</Text>
-              <TextInput
-                style={styles.input}
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Digite seu nome de usuário"
-              />
-            </View>
-    
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Website</Text>
-              <TextInput
-                style={styles.input}
-                value={website}
-                onChangeText={setWebsite}
-                placeholder="Digite seu website"
-                keyboardType="url"
-              />
-            </View>
-    
-            <Button
-              title={loading ? 'Carregando...' : 'Atualizar Perfil'}
-              onPress={updateProfile}
-              disabled={loading}
-            />
-    
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.signOutButton}
-                onPress={() => supabase.auth.signOut()}
-              >
-                <Text style={styles.signOutButtonText}>Sign Out</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-    
-        {/* Toast Container */}
-        <ToastContainer />
-      </>
-    );
-    
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.formWrapper}>
+        <Text style={styles.title}>Editar Perfil</Text>
+
+        <View style={styles.avatarContainer}>
+          {avatar && <Image source={{ uri: avatar }} style={styles.avatar} />}
+          <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
+            <Feather name="edit-2" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nome Completo</Text>
+          <AppTextField
+            style={styles.input}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            onChangeText={(text) => setFullName(text)}
+            placeholder="Digite seu nome completo"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nome de Usuário</Text>
+          <AppTextField
+            style={styles.input}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            onChangeText={(text) => setUsername(text)}
+            placeholder="Digite seu nome de usuário"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Website</Text>
+          <AppTextField
+            style={styles.input}
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            onChangeText={(text) => setWebsite(text)}
+            placeholder="Digite seu website"
+          />
+        </View>
+
+        <AppButton
+          style={styles.updateButton}
+          onClick={updateProfile}
+          disabled={loading}
+        >
+          {loading ? (
+            <AppLoader size={isWeb ? 24 : 'small'} />
+          ) : (
+            <Text style={styles.buttonText}>Atualizar Perfil</Text>
+          )}
+        </AppButton>
+
+        <View style={styles.buttonContainer}>
+          <AppButton
+            style={styles.signOutButton}
+            onClick={() => supabase.auth.signOut()}
+          >
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
+          </AppButton>
+        </View>
+      </View>
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -264,17 +322,30 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     fontSize: 16,
   },
+  updateButton: {
+    width: '100%',
+    padding: 12,
+    backgroundColor: '#1e90ff',
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 10,
+  },
   buttonContainer: {
     marginTop: 15,
   },
   signOutButton: {
+    width: '100%',
+    padding: 12,
     backgroundColor: 'red',
     borderRadius: 5,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
     alignItems: 'center',
   },
   signOutButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  buttonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',

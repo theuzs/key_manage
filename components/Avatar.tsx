@@ -1,106 +1,141 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
-import { StyleSheet, View, Alert, Image, Button } from 'react-native'
-import * as ImagePicker from 'expo-image-picker'
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { StyleSheet, View, Image, Text, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { showToast } from '../utils/toast'; // Importa do novo arquivo
+import { Button as MuiButton, CircularProgress } from '@mui/material';
 
 interface Props {
-  size: number
-  
-  url: string | null
-  onUpload: (filePath: string) => void
+  size?: number;
+  url: string | null;
+  onUpload: (filePath: string) => void;
 }
 
+const isWeb = Platform.OS === 'web';
+
+// Componente condicional para botão
+type ButtonProps = {
+  children: React.ReactNode;
+  style?: object;
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
+  isWeb ? (
+    <MuiButton
+      variant="contained"
+      color="primary"
+      style={style}
+      onClick={onClick}
+      disabled={disabled}
+    >
+      {children}
+    </MuiButton>
+  ) : (
+    <TouchableOpacity style={style} onPress={onClick} disabled={disabled}>
+      {children}
+    </TouchableOpacity>
+  );
+
+// Componente condicional para loader
+type LoaderProps = { size: number | 'small' };
+const AppLoader = ({ size }: LoaderProps) =>
+  isWeb ? <CircularProgress size={size} /> : <ActivityIndicator size={size} />;
+
 export default function Avatar({ url, size = 150, onUpload }: Props) {
-  const [uploading, setUploading] = useState(false)
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-  const avatarSize = { height: size, width: size }
+  const [uploading, setUploading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const avatarSize = { height: size, width: size };
 
   useEffect(() => {
-    if (url) downloadImage(url)
-  }, [url])
+    if (url) downloadImage(url);
+  }, [url]);
 
   async function downloadImage(path: string) {
     try {
-      const { data, error } = await supabase.storage.from('avatars').download(path)
+      const { data, error } = await supabase.storage.from('avatars').download(path);
 
       if (error) {
-        throw error
+        throw error;
       }
 
-      const fr = new FileReader()
-      fr.readAsDataURL(data)
+      const fr = new FileReader();
+      fr.readAsDataURL(data);
       fr.onload = () => {
-        setAvatarUrl(fr.result as string)
-      }
+        setAvatarUrl(fr.result as string);
+      };
     } catch (error) {
       if (error instanceof Error) {
-        console.log('Error downloading image: ', error.message)
+        console.log('Error downloading image: ', error.message);
+        showToast('error', `Erro ao baixar imagem: ${error.message}`);
       }
     }
   }
 
   async function uploadAvatar() {
     try {
-      setUploading(true)
+      setUploading(true);
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Restrict to only images
-        allowsMultipleSelection: false, // Can only select one image
-        allowsEditing: true, // Allows the user to crop / rotate their photo before uploading it
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
+        allowsEditing: true,
         quality: 1,
-        exif: false, // We don't want nor need that data.
-      })
+        exif: false,
+      });
 
       if (result.canceled || !result.assets || result.assets.length === 0) {
-        console.log('User cancelled image picker.')
-        return
+        console.log('User cancelled image picker.');
+        return;
       }
 
-      const image = result.assets[0]
-      console.log('Got image', image)
+      const image = result.assets[0];
+      console.log('Got image', image);
 
       if (!image.uri) {
-        throw new Error('No image uri!') // Realistically, this should never happen, but just in case...
+        throw new Error('No image uri!');
       }
 
-      let arraybuffer: ArrayBuffer
-      // Handle file on web differently
+      let arraybuffer: ArrayBuffer;
       if (image.uri.startsWith('file://')) {
-        // For mobile, we can continue as before.
-        arraybuffer = await fetch(image.uri).then((res) => res.arrayBuffer())
+        // Para mobile
+        arraybuffer = await fetch(image.uri).then((res) => res.arrayBuffer());
       } else {
-        // For web, create a file object and upload
-        const response = await fetch(image.uri)
-        const blob = await response.blob()
-        arraybuffer = await blob.arrayBuffer()
+        // Para web
+        const response = await fetch(image.uri);
+        const blob = await response.blob();
+        arraybuffer = await blob.arrayBuffer();
       }
 
-      const fileExt = image.uri?.split('.').pop()?.toLowerCase() ?? 'jpeg'
-      const path = `${Date.now()}.${fileExt}`
+      const fileExt = image.uri?.split('.').pop()?.toLowerCase() ?? 'jpeg';
+      const path = `${Date.now()}.${fileExt}`;
       const { data, error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(path, arraybuffer, {
           contentType: image.mimeType ?? 'image/jpeg',
-        })
+        });
 
       if (uploadError) {
-        throw uploadError
+        throw uploadError;
       }
 
-      onUpload(data.path)
+      onUpload(data.path);
+      showToast('success', 'Avatar carregado com sucesso!');
     } catch (error) {
       if (error instanceof Error) {
-        Alert.alert(error.message)
+        showToast('error', error.message);
       } else {
-        throw error
+        console.error('Unknown error:', error);
+        showToast('error', 'Erro desconhecido ao carregar avatar.');
       }
     } finally {
-      setUploading(false)
+      setUploading(false);
     }
   }
 
   return (
-    <View>
+    <View style={styles.container}>
       {avatarUrl ? (
         <Image
           source={{ uri: avatarUrl }}
@@ -110,18 +145,27 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       ) : (
         <View style={[avatarSize, styles.avatar, styles.noImage]} />
       )}
-      <View>
-        <Button
-          title={uploading ? 'Uploading ...' : 'Upload'}
-          onPress={uploadAvatar}
+      <View style={styles.buttonContainer}>
+        <AppButton
+          style={styles.uploadButton}
+          onClick={uploadAvatar}
           disabled={uploading}
-        />
+        >
+          {uploading ? (
+            <AppLoader size={isWeb ? 24 : 'small'} />
+          ) : (
+            <Text style={styles.buttonText}>Upload</Text>
+          )}
+        </AppButton>
       </View>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+  },
   avatar: {
     borderRadius: 5,
     overflow: 'hidden',
@@ -138,4 +182,19 @@ const styles = StyleSheet.create({
     borderColor: 'rgb(200, 200, 200)',
     borderRadius: 5,
   },
-})
+  buttonContainer: {
+    marginTop: 10,
+  },
+  uploadButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: '#1e90ff',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+});
