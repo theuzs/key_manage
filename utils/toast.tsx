@@ -1,14 +1,14 @@
-import { Platform, Text, View } from 'react-native';
+import { Platform, Text, View, StyleSheet } from 'react-native';
 import { toast as webToast } from 'react-toastify';
-import Toast from 'react-native-toast-message';
+import Toast, { ToastConfigParams } from 'react-native-toast-message';
 
 const isWeb = Platform.OS === 'web';
 
 // Configuração personalizada para o tipo 'warn'
 const toastConfig = {
-  warn: ({ text1, props }: { text1: string; props?: any }) => (
-    <View style={{ backgroundColor: '#ff9800', padding: 10, borderRadius: 5 }}>
-      <Text style={{ color: 'white', fontWeight: 'bold' }}>{text1}</Text>
+  warn: ({ text1 }: ToastConfigParams<any>) => (
+    <View style={styles.warnContainer}>
+      <Text style={styles.warnText}>{text1 || 'Aviso'}</Text>
     </View>
   ),
 };
@@ -39,5 +39,16 @@ export const showToast = (type: 'success' | 'error' | 'info' | 'warn', message: 
   }
 };
 
-// Exporta a configuração para ser usada no App.tsx
 export { toastConfig };
+
+const styles = StyleSheet.create({
+  warnContainer: {
+    backgroundColor: '#ff9800',
+    padding: 10,
+    borderRadius: 5,
+  },
+  warnText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+});

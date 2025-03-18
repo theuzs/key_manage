@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { StyleSheet, View, Image, Text, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Image,
+  Text,
+  TouchableOpacity,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { showToast } from '../utils/toast'; // Importa do novo arquivo
+import * as FileSystem from 'expo-file-system';
+import { showToast } from '../utils/toast';
 import { Button as MuiButton, CircularProgress } from '@mui/material';
 
 interface Props {
@@ -54,22 +63,14 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
 
   async function downloadImage(path: string) {
     try {
-      const { data, error } = await supabase.storage.from('avatars').download(path);
-
-      if (error) {
-        throw error;
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+      if (!data?.publicUrl) {
+        throw new Error('URL pública não disponível');
       }
-
-      const fr = new FileReader();
-      fr.readAsDataURL(data);
-      fr.onload = () => {
-        setAvatarUrl(fr.result as string);
-      };
+      setAvatarUrl(data.publicUrl);
     } catch (error) {
-      if (error instanceof Error) {
-        console.log('Error downloading image: ', error.message);
-        showToast('error', `Erro ao baixar imagem: ${error.message}`);
-      }
+      console.log('Error downloading image:', error);
+      showToast('error', 'Erro ao carregar imagem do avatar.');
     }
   }
 
@@ -78,9 +79,9 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       setUploading(true);
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: false,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Mantido como fallback
         allowsEditing: true,
+        aspect: [1, 1],
         quality: 1,
         exif: false,
       });
@@ -91,44 +92,44 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       }
 
       const image = result.assets[0];
-      console.log('Got image', image);
+      console.log('Got image:', image);
 
       if (!image.uri) {
-        throw new Error('No image uri!');
+        throw new Error('No image URI!');
       }
 
-      let arraybuffer: ArrayBuffer;
-      if (image.uri.startsWith('file://')) {
-        // Para mobile
-        arraybuffer = await fetch(image.uri).then((res) => res.arrayBuffer());
-      } else {
-        // Para web
-        const response = await fetch(image.uri);
-        const blob = await response.blob();
-        arraybuffer = await blob.arrayBuffer();
-      }
+      // Lê o arquivo como base64
+      const base64Data = await FileSystem.readAsStringAsync(image.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
-      const fileExt = image.uri?.split('.').pop()?.toLowerCase() ?? 'jpeg';
-      const path = `${Date.now()}.${fileExt}`;
-      const { data, error: uploadError } = await supabase.storage
+      // Remove o prefixo "data:image/jpeg;base64," se presente (não deve estar, mas por segurança)
+      const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
+
+      const fileExt = image.uri.split('.').pop()?.toLowerCase() ?? 'jpeg';
+      const fileName = `${Date.now()}.${fileExt}`;
+
+      // Envia o base64 diretamente ao Supabase
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, arraybuffer, {
+        .upload(fileName, atob(cleanBase64), {
           contentType: image.mimeType ?? 'image/jpeg',
+          upsert: true,
         });
 
       if (uploadError) {
         throw uploadError;
       }
 
-      onUpload(data.path);
+      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const newAvatarUrl = publicUrlData.publicUrl;
+
+      setAvatarUrl(newAvatarUrl);
+      onUpload(fileName);
       showToast('success', 'Avatar carregado com sucesso!');
     } catch (error) {
-      if (error instanceof Error) {
-        showToast('error', error.message);
-      } else {
-        console.error('Unknown error:', error);
-        showToast('error', 'Erro desconhecido ao carregar avatar.');
-      }
+      console.log('Error uploading image:', error);
+      showToast('error', error instanceof Error ? error.message : 'Erro ao carregar avatar.');
     } finally {
       setUploading(false);
     }
@@ -143,7 +144,9 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
           style={[avatarSize, styles.avatar, styles.image]}
         />
       ) : (
-        <View style={[avatarSize, styles.avatar, styles.noImage]} />
+        <View style={[avatarSize, styles.avatar, styles.noImage]}>
+          <Text style={styles.noImageText}>Sem Avatar</Text>
+        </View>
       )}
       <View style={styles.buttonContainer}>
         <AppButton
@@ -167,9 +170,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatar: {
-    borderRadius: 5,
+    borderRadius: 75,
     overflow: 'hidden',
     maxWidth: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   image: {
     objectFit: 'cover',
@@ -180,7 +185,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderStyle: 'solid',
     borderColor: 'rgb(200, 200, 200)',
-    borderRadius: 5,
+  },
+  noImageText: {
+    color: '#fff',
+    fontSize: 16,
   },
   buttonContainer: {
     marginTop: 10,

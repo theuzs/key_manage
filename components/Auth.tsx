@@ -18,9 +18,10 @@ import {
   CircularProgress,
   TypographyProps as MuiTypographyProps,
 } from '@mui/material';
-import { ToastContainer, toast as webToast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Toast from 'react-native-toast-message';
+import { showToast, toastConfig } from '../utils/toast';
 
 // Definindo tipos para suportar web e mobile
 type ContainerProps = {
@@ -32,7 +33,7 @@ type PaperProps = { children: React.ReactNode; style?: object; elevation?: numbe
 type TypographyProps = {
   children: React.ReactNode;
   style?: object;
-  variant?: MuiTypographyProps['variant']; // Tipagem correta do MUI
+  variant?: MuiTypographyProps['variant'];
 };
 type TextFieldProps = {
   style?: object;
@@ -49,6 +50,8 @@ type ButtonProps = {
   disabled?: boolean;
 };
 type LoaderProps = { size: number | 'small' };
+
+const isWeb = Platform.OS === 'web';
 
 // Componentes condicionais como funções
 const AppContainer = ({ children, style, maxWidth }: ContainerProps) =>
@@ -94,6 +97,7 @@ const AppTextField = ({
       value={value}
       onChange={onChange}
       style={style}
+      placeholder={placeholder}
     />
   ) : (
     <TextInput
@@ -107,7 +111,14 @@ const AppTextField = ({
 
 const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
   isWeb ? (
-    <Button fullWidth variant="contained" color="primary" style={style} onClick={onClick} disabled={disabled}>
+    <Button
+      fullWidth
+      variant="contained"
+      color="primary"
+      style={style}
+      onClick={onClick}
+      disabled={disabled}
+    >
       {children}
     </Button>
   ) : (
@@ -118,35 +129,6 @@ const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
 
 const AppLoader = ({ size }: LoaderProps) =>
   isWeb ? <CircularProgress size={size} /> : <ActivityIndicator size={size} />;
-
-const isWeb = Platform.OS === 'web';
-
-// Função para exibir toasts de forma condicional
-const showToast = (type: 'success' | 'error' | 'info' | 'warn', message: string) => {
-  if (isWeb) {
-    switch (type) {
-      case 'success':
-        webToast.success(message);
-        break;
-      case 'error':
-        webToast.error(message);
-        break;
-      case 'info':
-        webToast.info(message);
-        break;
-      case 'warn':
-        webToast.warn(message);
-        break;
-    }
-  } else {
-    Toast.show({
-      type,
-      text1: message,
-      position: 'top',
-      visibilityTime: 3000,
-    });
-  }
-};
 
 export default function Auth() {
   const [email, setEmail] = useState('');
@@ -262,16 +244,33 @@ export default function Auth() {
           placeholder="Senha"
           secureTextEntry={true}
         />
-        <AppButton style={styles.button} onClick={signInWithEmail} disabled={loading || !email || !password}>
-          {loading ? <AppLoader size={isWeb ? 24 : 'small'} /> : <Text style={styles.buttonText}>Acessar</Text>}
+        <AppButton
+          style={styles.button}
+          onClick={signInWithEmail}
+          disabled={loading || !email || !password}
+        >
+          {loading ? (
+            <AppLoader size={isWeb ? 24 : 'small'} />
+          ) : (
+            <Text style={styles.buttonText}>Acessar</Text>
+          )}
         </AppButton>
-        <AppButton style={styles.button} onClick={signUpWithEmail} disabled={loading || !email || !password}>
-          {loading ? <AppLoader size={isWeb ? 24 : 'small'} /> : <Text style={styles.buttonText}>Primeiro Acesso</Text>}
+        <AppButton
+          style={styles.button}
+          onClick={signUpWithEmail}
+          disabled={loading || !email || !password}
+        >
+          {loading ? (
+            <AppLoader size={isWeb ? 24 : 'small'} />
+          ) : (
+            <Text style={styles.buttonText}>Primeiro Acesso</Text>
+          )}
         </AppButton>
         <AppButton style={styles.linkButton} onClick={resetPassword} disabled={loading}>
           <Text style={styles.linkText}>Esqueci minha senha</Text>
         </AppButton>
       </AppPaper>
+      {!isWeb && <Toast config={toastConfig} />}
     </AppContainer>
   );
 }
@@ -298,10 +297,10 @@ const styles = StyleSheet.create({
   textField: {
     width: '100%',
     marginVertical: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 4,
+    padding: Platform.OS === 'web' ? undefined : 12,
+    borderWidth: Platform.OS === 'web' ? undefined : 1,
+    borderColor: Platform.OS === 'web' ? undefined : '#ccc',
+    borderRadius: Platform.OS === 'web' ? undefined : 4,
   },
   button: {
     width: '100%',

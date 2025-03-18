@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, StyleSheet, ScrollView, Image, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput, // Adicionado
+  StyleSheet,
+  ScrollView,
+  Platform,
+  Dimensions,
+  TouchableOpacity, // Adicionado
+} from 'react-native';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
-import * as ImagePicker from 'expo-image-picker';
-import { Feather } from '@expo/vector-icons';
-import { showToast } from '../utils/toast'; // Importa do novo arquivo
-import { Button as MuiButton, TextField, CircularProgress } from '@mui/material';
+import Avatar from './Avatar';
+import { showToast } from '../utils/toast';
+import { TextField, Button as MuiButton } from '@mui/material';
 
-// Definindo tipos para suportar web e mobile
+const { width } = Dimensions.get('window');
+const isWeb = Platform.OS === 'web';
+
+// Tipos e componentes condicionais
 type TextFieldProps = {
   style?: object;
   value: string;
@@ -21,11 +32,7 @@ type ButtonProps = {
   onClick: () => void;
   disabled?: boolean;
 };
-type LoaderProps = { size: number | 'small' };
 
-const isWeb = Platform.OS === 'web';
-
-// Componentes condicionais como funções
 const AppTextField = ({ style, value, onChange, onChangeText, placeholder }: TextFieldProps) =>
   isWeb ? (
     <TextField
@@ -43,6 +50,7 @@ const AppTextField = ({ style, value, onChange, onChangeText, placeholder }: Tex
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
+      placeholderTextColor="#aaa"
     />
   );
 
@@ -64,21 +72,15 @@ const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
     </TouchableOpacity>
   );
 
-const AppLoader = ({ size }: LoaderProps) =>
-  isWeb ? <CircularProgress size={size} /> : <ActivityIndicator size={size} />;
-
 export default function Account({ session }: { session: Session }) {
   const [loading, setLoading] = useState(false);
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [website, setWebsite] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [avatar, setAvatar] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session) {
-      getProfile();
-    }
+    if (session) getProfile();
   }, [session]);
 
   async function getProfile() {
@@ -97,9 +99,6 @@ export default function Account({ session }: { session: Session }) {
         setUsername(data.username || '');
         setWebsite(data.website || '');
         setAvatarUrl(data.avatar_url || '');
-        if (data.avatar_url) {
-          downloadAvatar(data.avatar_url);
-        }
       }
     } catch (error) {
       showToast('error', 'Erro ao carregar perfil.');
@@ -108,83 +107,19 @@ export default function Account({ session }: { session: Session }) {
     }
   }
 
-  async function downloadAvatar(path: string) {
-    try {
-      const { data, error } = await supabase.storage.from('avatars').download(path);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
-      setAvatar(url);
-    } catch (error) {
-      showToast('error', 'Erro ao carregar avatar.');
-    }
-  }
-
-  async function updateAvatar(file: File) {
-    try {
-      setLoading(true);
-
-      const fileName = `${session.user.id}-${Date.now()}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true,
-        });
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
-      const newAvatarUrl = publicUrlData.publicUrl;
-
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: fileName })
-        .eq('id', session.user.id);
-
-      if (updateError) throw updateError;
-
-      setAvatarUrl(newAvatarUrl);
-      downloadAvatar(fileName);
-      showToast('success', 'Avatar atualizado com sucesso!');
-    } catch (error) {
-      showToast('error', 'Erro ao atualizar avatar.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function pickImage() {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      const file = await fetch(result.assets[0].uri).then((res) => res.blob());
-      updateAvatar(file as File);
-    }
-  }
-
   async function updateProfile() {
     try {
       setLoading(true);
-
       const updates = {
         id: session.user.id,
         full_name: fullName,
         username: username,
         website: website,
+        avatar_url: avatarUrl,
         updated_at: new Date().toISOString(),
       };
-
       const { error } = await supabase.from('profiles').upsert(updates);
       if (error) throw error;
-
       showToast('success', 'Perfil atualizado com sucesso!');
     } catch (error) {
       showToast('error', 'Erro ao atualizar perfil.');
@@ -193,18 +128,19 @@ export default function Account({ session }: { session: Session }) {
     }
   }
 
+  const handleAvatarUpload = (filePath: string) => {
+    setAvatarUrl(filePath);
+    updateProfile();
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.formWrapper}>
+      <View style={styles.header}>
         <Text style={styles.title}>Editar Perfil</Text>
+        <Avatar url={avatarUrl} size={100} onUpload={handleAvatarUpload} />
+      </View>
 
-        <View style={styles.avatarContainer}>
-          {avatar && <Image source={{ uri: avatar }} style={styles.avatar} />}
-          <TouchableOpacity style={styles.editIcon} onPress={pickImage}>
-            <Feather name="edit-2" size={20} color="white" />
-          </TouchableOpacity>
-        </View>
-
+      <View style={styles.form}>
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Nome Completo</Text>
           <AppTextField
@@ -238,26 +174,13 @@ export default function Account({ session }: { session: Session }) {
           />
         </View>
 
-        <AppButton
-          style={styles.updateButton}
-          onClick={updateProfile}
-          disabled={loading}
-        >
-          {loading ? (
-            <AppLoader size={isWeb ? 24 : 'small'} />
-          ) : (
-            <Text style={styles.buttonText}>Atualizar Perfil</Text>
-          )}
+        <AppButton style={styles.updateButton} onClick={updateProfile} disabled={loading}>
+          <Text style={styles.buttonText}>{loading ? 'Atualizando...' : 'Atualizar Perfil'}</Text>
         </AppButton>
 
-        <View style={styles.buttonContainer}>
-          <AppButton
-            style={styles.signOutButton}
-            onClick={() => supabase.auth.signOut()}
-          >
-            <Text style={styles.signOutButtonText}>Sign Out</Text>
-          </AppButton>
-        </View>
+        <AppButton style={styles.signOutButton} onClick={() => supabase.auth.signOut()}>
+          <Text style={styles.signOutButtonText}>Sair</Text>
+        </AppButton>
       </View>
     </ScrollView>
   );
@@ -266,87 +189,82 @@ export default function Account({ session }: { session: Session }) {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 50,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: 'transparent',
+    paddingVertical: 20,
   },
-  formWrapper: {
-    backgroundColor: 'white',
-    borderRadius: 50,
-    padding: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
+  header: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    backgroundColor: 'rgba(30, 144, 255, 0.9)',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: isWeb ? 28 : 24,
     fontWeight: 'bold',
-    color: '#1e90ff',
-    textAlign: 'center',
-    marginBottom: 20,
+    color: '#fff',
+    marginBottom: 15,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 3,
   },
-  avatarContainer: {
-    position: 'relative',
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  editIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#1e90ff',
-    borderRadius: 15,
-    padding: 5,
+  form: {
+    paddingHorizontal: isWeb ? 40 : 20,
   },
   inputGroup: {
     marginBottom: 15,
   },
   label: {
     fontSize: 16,
-    color: '#333',
+    color: '#fff',
     marginBottom: 5,
+    fontWeight: '600',
   },
   input: {
+    width: '100%',
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 16,
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    backgroundColor: 'white',
-    fontSize: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   updateButton: {
     width: '100%',
-    padding: 12,
+    padding: 14,
     backgroundColor: '#1e90ff',
-    borderRadius: 5,
+    borderRadius: 10,
     alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonContainer: {
-    marginTop: 15,
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
   signOutButton: {
     width: '100%',
-    padding: 12,
-    backgroundColor: 'red',
-    borderRadius: 5,
+    padding: 14,
+    backgroundColor: '#ff4444',
+    borderRadius: 10,
     alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
-  signOutButtonText: {
-    color: 'white',
+  buttonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  buttonText: {
-    color: 'white',
+  signOutButtonText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
