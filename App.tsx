@@ -1,17 +1,21 @@
+import 'react-native-gesture-handler'; // Necessário para o stack navigator
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
 import Account from './components/Account';
+import KeyHubScreen from './screens/KeyHubScreen';
+import AddKeyScreen from './screens/AddKeyScreen'; // Verifique se o caminho está correto
 import {
   View,
   StyleSheet,
   Text,
-  ScrollView,
   StatusBar,
   Animated,
   Platform,
   Dimensions,
 } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import { Session } from '@supabase/supabase-js';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -21,6 +25,7 @@ import { showToast, toastConfig } from './utils/toast';
 
 const isWeb = Platform.OS === 'web';
 const { height } = Dimensions.get('window');
+const Stack = createStackNavigator();
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -33,6 +38,19 @@ export default function App() {
     // require('./assets/background_2.png'),
     // require('./assets/background_3.png'),
   ];
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) showToast('success', 'Sessão iniciada com sucesso!');
+    });
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (session) showToast('info', 'Estado de autenticação alterado!');
+      else showToast('warn', 'Usuário deslogado.');
+    });
+  }, []);
 
   useEffect(() => {
     if (!isWeb && !session) { // Carrossel só na tela de login
@@ -60,19 +78,6 @@ export default function App() {
       return () => clearInterval(interval);
     }
   }, [currentImageIndex, fadeAnim, nextFadeAnim, session]);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) showToast('success', 'Sessão iniciada com sucesso!');
-    });
-
-    supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) showToast('info', 'Estado de autenticação alterado!');
-      else showToast('warn', 'Usuário deslogado.');
-    });
-  }, []);
 
   const Background = () => {
     if (isWeb) {
@@ -106,7 +111,7 @@ export default function App() {
       );
     } else {
       return (
-        <View style={[styles.background, { backgroundColor: '#e0e0e0' }]} />
+        <View style={[styles.background, { backgroundColor: '#1a2a44' }]} /> // Azul-marinho escuro
       );
     }
   };
@@ -130,7 +135,7 @@ export default function App() {
       </LinearGradient>
     );
 
-  return (
+  const AuthScreen = () => (
     <>
       <Background />
       <View style={styles.container}>
@@ -138,17 +143,33 @@ export default function App() {
         <Gradient colors={['#1e90ff', '#4682b4']} style={styles.header}>
           <Text style={styles.headerText}>Gerenciador de Chave</Text>
         </Gradient>
-        <ScrollView contentContainerStyle={styles.content}>
-          {session && session.user ? (
-            <Account key={session.user.id} session={session} />
-          ) : (
-            <Auth />
-          )}
-        </ScrollView>
+        <View style={styles.content}>
+          <Auth />
+        </View>
         <Gradient colors={['#4682b4', '#1e90ff']} style={styles.footer}>
           <Text style={styles.footerText}>© 2025 M. Fag - Todos os direitos reservados</Text>
         </Gradient>
       </View>
+    </>
+  );
+
+  return (
+    <>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {session ? (
+            <>
+              <Stack.Screen name="KeyHub" component={KeyHubScreen} />
+              <Stack.Screen name="Account">
+                {(props) => <Account {...props} session={session} />}
+              </Stack.Screen>
+              <Stack.Screen name="AddKey" component={AddKeyScreen} />
+            </>
+          ) : (
+            <Stack.Screen name="Auth" component={AuthScreen} />
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
       {isWeb && (
         <ToastContainer
           position="top-right"
@@ -181,7 +202,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   header: {
-    height: isWeb ? 80 : 60, // Menor no mobile
+    height: isWeb ? 80 : 60,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
@@ -193,7 +214,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     color: 'white',
-    fontSize: isWeb ? 22 : 18, // Menor no mobile
+    fontSize: isWeb ? 22 : 18,
     fontWeight: 'bold',
     letterSpacing: 1.2,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
@@ -201,13 +222,13 @@ const styles = StyleSheet.create({
     textShadowRadius: 5,
   },
   content: {
-    flexGrow: 1,
-    marginTop: isWeb ? 100 : 80, // Ajustado para o header menor
-    marginBottom: isWeb ? 80 : 60, // Ajustado para o footer menor
-    paddingHorizontal: isWeb ? 55 : 20, // Menor no mobile
+    flex: 1,
+    marginTop: isWeb ? 100 : 80,
+    marginBottom: isWeb ? 80 : 60,
+    paddingHorizontal: isWeb ? 55 : 20,
   },
   footer: {
-    height: isWeb ? 80 : 60, // Menor no mobile
+    height: isWeb ? 80 : 60,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
@@ -217,7 +238,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     color: 'white',
-    fontSize: isWeb ? 14 : 12, // Menor no mobile
+    fontSize: isWeb ? 14 : 12,
     textAlign: 'center',
   },
 });
