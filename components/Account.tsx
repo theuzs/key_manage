@@ -2,21 +2,32 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput, // Adicionado
+  TextInput,
   StyleSheet,
   ScrollView,
   Platform,
   Dimensions,
-  TouchableOpacity, // Adicionado
+  TouchableOpacity,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import Avatar from './Avatar';
 import { showToast } from '../utils/toast';
 import { TextField, Button as MuiButton } from '@mui/material';
+import { useNavigation } from '@react-navigation/native'; // Adicionado para navegação
+import { StackNavigationProp } from '@react-navigation/stack';
 
 const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
+
+// Tipos para o Stack Navigator
+type RootStackParamList = {
+  KeyHub: undefined;
+  Account: undefined;
+  AddKey: undefined;
+};
+
+type NavigationProp = StackNavigationProp<RootStackParamList, 'Account'>;
 
 // Tipos e componentes condicionais
 type TextFieldProps = {
@@ -50,7 +61,7 @@ const AppTextField = ({ style, value, onChange, onChangeText, placeholder }: Tex
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor="#aaa"
+      placeholderTextColor="#999" // Ajustado para combinar com o tema
     />
   );
 
@@ -78,6 +89,7 @@ export default function Account({ session }: { session: Session }) {
   const [username, setUsername] = useState('');
   const [website, setWebsite] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const navigation = useNavigation<NavigationProp>(); // Adicionado para navegação
 
   useEffect(() => {
     if (session) getProfile();
@@ -178,8 +190,8 @@ export default function Account({ session }: { session: Session }) {
           <Text style={styles.buttonText}>{loading ? 'Atualizando...' : 'Atualizar Perfil'}</Text>
         </AppButton>
 
-        <AppButton style={styles.signOutButton} onClick={() => supabase.auth.signOut()}>
-          <Text style={styles.signOutButtonText}>Sair</Text>
+        <AppButton style={styles.backButton} onClick={() => navigation.navigate('KeyHub')}>
+          <Text style={styles.buttonText}>Voltar ao Hub</Text>
         </AppButton>
       </View>
     </ScrollView>
@@ -189,21 +201,21 @@ export default function Account({ session }: { session: Session }) {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#1a2a44', // Azul-marinho escuro do KeyHub
     paddingVertical: 20,
   },
   header: {
     alignItems: 'center',
     paddingVertical: 20,
-    backgroundColor: 'rgba(30, 144, 255, 0.9)',
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    backgroundColor: '#14213d', // Tom mais escuro para o header
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
     marginBottom: 20,
   },
   title: {
     fontSize: isWeb ? 28 : 24,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#ffffff',
     marginBottom: 15,
     textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: { width: 1, height: 1 },
@@ -217,7 +229,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    color: '#fff',
+    color: '#d1d5db', // Cinza claro do KeyHub
     marginBottom: 5,
     fontWeight: '600',
   },
@@ -225,10 +237,11 @@ const styles = StyleSheet.create({
     width: '100%',
     padding: 12,
     borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#2e4066', // Cor dos inputs do KeyHub
+    color: '#ffffff',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#3b517a', // Borda do KeyHub
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
@@ -236,8 +249,8 @@ const styles = StyleSheet.create({
   },
   updateButton: {
     width: '100%',
-    padding: 14,
-    backgroundColor: '#1e90ff',
+    padding: 15,
+    backgroundColor: '#34d399', // Verde vibrante para ação principal
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 20,
@@ -246,10 +259,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
   },
-  signOutButton: {
+  backButton: {
     width: '100%',
-    padding: 14,
-    backgroundColor: '#ff4444',
+    padding: 15,
+    backgroundColor: '#2e4066', // Cor neutra para "Voltar"
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 10,
@@ -259,12 +272,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  signOutButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },

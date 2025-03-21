@@ -7,17 +7,19 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
+  Animated,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { showToast } from '../utils/toast';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 // Definir o tipo das rotas para o Stack Navigator
 type RootStackParamList = {
   KeyHub: undefined;
   Account: undefined;
-  AddKey: undefined; // Adicionado
+  AddKey: undefined;
 };
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'KeyHub'>;
@@ -35,7 +37,9 @@ export default function KeyHubScreen() {
   const [keys, setKeys] = useState<Key[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('');
+  const [menuVisible, setMenuVisible] = useState(false);
   const navigation = useNavigation<NavigationProp>();
+  const slideAnim = React.useRef(new Animated.Value(-250)).current;
 
   useEffect(() => {
     fetchKeys();
@@ -82,40 +86,97 @@ export default function KeyHubScreen() {
       style={styles.keyItem}
       onPress={() => showToast('info', `Detalhes da chave: ${item.name}`)}
     >
-      <Text style={styles.keyName}>{item.name}</Text>
-      <Text style={styles.keyDetail}>Local: {item.location}</Text>
-      <Text style={styles.keyDetail}>
-        Status: <Text style={item.status === 'disponível' ? styles.available : styles.inUse}>{item.status}</Text>
-      </Text>
-      {item.user_id && item.user?.full_name ? (
-        <Text style={styles.keyDetail}>Com: {item.user.full_name}</Text>
-      ) : (
-        <Text style={styles.keyDetail}>Com: Ninguém</Text>
-      )}
+      <View style={styles.keyRow}>
+        <Icon name="vpn-key" size={24} color="#ffffff" style={styles.keyIcon} />
+        <View style={styles.keyInfo}>
+          <Text style={styles.keyName}>{item.name}</Text>
+          <Text style={styles.keyDetail}>Local: {item.location}</Text>
+          <View style={styles.statusContainer}>
+            <Text style={styles.keyDetail}>Status: </Text>
+            <Text
+              style={[
+                styles.statusText,
+                item.status === 'disponível' ? styles.available : styles.inUse,
+              ]}
+            >
+              {item.status}
+            </Text>
+          </View>
+          {item.user_id && item.user?.full_name ? (
+            <Text style={styles.keyDetail}>Com: {item.user.full_name}</Text>
+          ) : (
+            <Text style={styles.keyDetail}>Com: Ninguém</Text>
+          )}
+        </View>
+      </View>
     </TouchableOpacity>
   );
 
+  const toggleMenu = () => {
+    const toValue = menuVisible ? -250 : 0;
+    Animated.timing(slideAnim, {
+      toValue,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setMenuVisible(!menuVisible);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      showToast('success', 'Logout realizado com sucesso!');
+      toggleMenu();
+    } catch (error) {
+      console.log('Error signing out:', error);
+      showToast('error', 'Erro ao fazer logout.');
+    }
+  };
+
   return (
     <View style={styles.container}>
-      {/* Barra Lateral */}
-      <View style={styles.sidebar}>
+      {/* Botão de Menu */}
+      <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
+        <Text style={styles.menuButtonText}>{menuVisible ? '✕' : '☰'}</Text>
+      </TouchableOpacity>
+
+      {/* Menu Lateral */}
+      <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
         <Text style={styles.sidebarTitle}>Menu</Text>
         <TouchableOpacity
           style={styles.sidebarButton}
-          onPress={() => navigation.navigate('AddKey')}
+          onPress={() => {
+            navigation.navigate('AddKey');
+            toggleMenu();
+          }}
         >
           <Text style={styles.sidebarButtonText}>Adicionar Chave</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.sidebarButton}
-          onPress={() => navigation.navigate('Account')}
+          onPress={() => {
+            navigation.navigate('Account');
+            toggleMenu();
+          }}
         >
           <Text style={styles.sidebarButtonText}>Configurar Perfil</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.sidebarButton} onPress={fetchKeys}>
+        <TouchableOpacity
+          style={styles.sidebarButton}
+          onPress={() => {
+            fetchKeys();
+            toggleMenu();
+          }}
+        >
           <Text style={styles.sidebarButtonText}>Atualizar Lista</Text>
         </TouchableOpacity>
-      </View>
+        <TouchableOpacity
+          style={styles.signOutButton} // Estilo diferente para destacar
+          onPress={handleSignOut}
+        >
+          <Text style={styles.sidebarButtonText}>Sair</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
       {/* Conteúdo Principal */}
       <View style={styles.mainContent}>
@@ -146,30 +207,65 @@ export default function KeyHubScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    flexDirection: 'row', // Para a barra lateral e o conteúdo principal
-    backgroundColor: '#1a2a44', // Azul-marinho escuro
+    backgroundColor: '#1a2a44',
+  },
+  menuButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 10,
+    backgroundColor: '#2e4066',
+    padding: 10,
+    borderRadius: 8,
+  },
+  menuButtonText: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   sidebar: {
-    width: 200,
-    backgroundColor: '#14213d', // Um tom mais escuro para a sidebar
-    paddingVertical: 20,
-    paddingHorizontal: 15,
-    borderRightWidth: 1,
-    borderRightColor: '#2e4066',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: 250,
+    height: '100%',
+    backgroundColor: '#14213d',
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+    zIndex: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
   },
   sidebarTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#ffffff',
-    marginBottom: 20,
+    marginBottom: 30,
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   sidebarButton: {
     backgroundColor: '#2e4066',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 10,
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#3b517a',
+  },
+  signOutButton: {
+    backgroundColor: '#f87171', // Vermelho para destacar o "Sair"
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#f87171',
   },
   sidebarButtonText: {
     color: '#ffffff',
@@ -179,6 +275,7 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     padding: 20,
+    paddingTop: 70,
   },
   title: {
     fontSize: 28,
@@ -212,6 +309,16 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
   },
+  keyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  keyIcon: {
+    marginRight: 10,
+  },
+  keyInfo: {
+    flex: 1,
+  },
   keyName: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -222,13 +329,23 @@ const styles = StyleSheet.create({
     color: '#d1d5db',
     marginTop: 4,
   },
-  available: {
-    color: '#34d399',
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusText: {
+    fontSize: 14,
     fontWeight: 'bold',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    color: '#ffffff',
+  },
+  available: {
+    backgroundColor: '#34d399',
   },
   inUse: {
-    color: '#f87171',
-    fontWeight: 'bold',
+    backgroundColor: '#f87171',
   },
   emptyText: {
     fontSize: 16,

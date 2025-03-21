@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 import { showToast } from '../utils/toast';
 import { Button as MuiButton, CircularProgress } from '@mui/material';
 
@@ -22,7 +21,6 @@ interface Props {
 
 const isWeb = Platform.OS === 'web';
 
-// Componente condicional para botão
 type ButtonProps = {
   children: React.ReactNode;
   style?: object;
@@ -47,7 +45,6 @@ const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
     </TouchableOpacity>
   );
 
-// Componente condicional para loader
 type LoaderProps = { size: number | 'small' };
 const AppLoader = ({ size }: LoaderProps) =>
   isWeb ? <CircularProgress size={size} /> : <ActivityIndicator size={size} />;
@@ -78,8 +75,15 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
     try {
       setUploading(true);
 
+      // Verificar permissões
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        showToast('error', 'Permissão para acessar a galeria negada.');
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Mantido como fallback
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
         quality: 1,
@@ -98,21 +102,17 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
         throw new Error('No image URI!');
       }
 
-      // Lê o arquivo como base64
-      const base64Data = await FileSystem.readAsStringAsync(image.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      // Remove o prefixo "data:image/jpeg;base64," se presente (não deve estar, mas por segurança)
-      const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
-
       const fileExt = image.uri.split('.').pop()?.toLowerCase() ?? 'jpeg';
       const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `public/${fileName}`; // Adicionando pasta "public" para organização
 
-      // Envia o base64 diretamente ao Supabase
+      // Preparar o arquivo para upload
+      const response = await fetch(image.uri);
+      const blob = await response.blob();
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(fileName, atob(cleanBase64), {
+        .upload(filePath, blob, {
           contentType: image.mimeType ?? 'image/jpeg',
           upsert: true,
         });
@@ -121,11 +121,11 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
         throw uploadError;
       }
 
-      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const newAvatarUrl = publicUrlData.publicUrl;
 
       setAvatarUrl(newAvatarUrl);
-      onUpload(fileName);
+      onUpload(filePath); // Passa o filePath relativo (ex.: "public/123456.jpeg")
       showToast('success', 'Avatar carregado com sucesso!');
     } catch (error) {
       console.log('Error uploading image:', error);
@@ -181,13 +181,13 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   noImage: {
-    backgroundColor: '#333',
+    backgroundColor: '#2e4066', // Alinhado com o tema do KeyHub
     borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: 'rgb(200, 200, 200)',
+    borderColor: '#3b517a',
   },
   noImageText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 16,
   },
   buttonContainer: {
@@ -196,12 +196,12 @@ const styles = StyleSheet.create({
   uploadButton: {
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: '#1e90ff',
+    backgroundColor: '#34d399', // Verde vibrante do KeyHub
     borderRadius: 5,
     alignItems: 'center',
   },
   buttonText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },
