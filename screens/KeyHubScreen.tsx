@@ -20,6 +20,7 @@ type RootStackParamList = {
   KeyHub: undefined;
   Account: undefined;
   AddKey: undefined;
+  KeyHistory: undefined; // Adicionei a nova tela
 };
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'KeyHub'>;
@@ -169,6 +170,15 @@ export default function KeyHubScreen() {
           }}
         >
           <Text style={styles.sidebarButtonText}>Atualizar Lista</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.sidebarButton} // Novo botão para KeyHistory
+          onPress={() => {
+            navigation.navigate('KeyHistory');
+            toggleMenu();
+          }}
+        >
+          <Text style={styles.sidebarButtonText}>Relatório de Movimentação</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.signOutButton} // Estilo diferente para destacar

@@ -5,6 +5,7 @@ import Auth from './components/Auth';
 import Account from './components/Account';
 import KeyHubScreen from './screens/KeyHubScreen';
 import AddKeyScreen from './screens/AddKeyScreen'; // Verifique se o caminho está correto
+import KeyHistoryScreen from './screens/KeyHistoryScreen'; // Adicionei a nova tela
 import {
   View,
   StyleSheet,
@@ -164,6 +165,7 @@ export default function App() {
                 {(props) => <Account {...props} session={session} />}
               </Stack.Screen>
               <Stack.Screen name="AddKey" component={AddKeyScreen} />
+              <Stack.Screen name="KeyHistory" component={KeyHistoryScreen} /> {/* Adicionei a nova tela */}
             </>
           ) : (
             <Stack.Screen name="Auth" component={AuthScreen} />
