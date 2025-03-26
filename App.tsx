@@ -4,8 +4,8 @@ import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
 import Account from './components/Account';
 import KeyHubScreen from './screens/KeyHubScreen';
-import AddKeyScreen from './screens/AddKeyScreen'; // Verifique se o caminho está correto
-import KeyHistoryScreen from './screens/KeyHistoryScreen'; // Adicionei a nova tela
+import AddKeyScreen from './screens/AddKeyScreen';
+import KeyHistoryScreen from './screens/KeyHistoryScreen';
 import {
   View,
   StyleSheet,
@@ -111,9 +111,7 @@ export default function App() {
         </>
       );
     } else {
-      return (
-        <View style={[styles.background, { backgroundColor: '#1a2a44' }]} /> // Azul-marinho escuro
-      );
+      return <View style={[styles.background, { backgroundColor: '#1a2a44' }]} />;
     }
   };
 
@@ -155,23 +153,21 @@ export default function App() {
   );
 
   return (
-    <>
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          {session ? (
-            <>
-              <Stack.Screen name="KeyHub" component={KeyHubScreen} />
-              <Stack.Screen name="Account">
-                {(props) => <Account {...props} session={session} />}
-              </Stack.Screen>
-              <Stack.Screen name="AddKey" component={AddKeyScreen} />
-              <Stack.Screen name="KeyHistory" component={KeyHistoryScreen} /> {/* Adicionei a nova tela */}
-            </>
-          ) : (
-            <Stack.Screen name="Auth" component={AuthScreen} />
-          )}
-        </Stack.Navigator>
-      </NavigationContainer>
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {session ? (
+          <>
+            <Stack.Screen name="KeyHub" component={KeyHubScreen} />
+            <Stack.Screen name="Account">
+              {(props) => <Account {...props} session={session} />}
+            </Stack.Screen>
+            <Stack.Screen name="AddKey" component={AddKeyScreen} />
+            <Stack.Screen name="KeyHistory" component={KeyHistoryScreen} />
+          </>
+        ) : (
+          <Stack.Screen name="Auth" component={AuthScreen} />
+        )}
+      </Stack.Navigator>
       {isWeb && (
         <ToastContainer
           position="top-right"
@@ -188,7 +184,7 @@ export default function App() {
         />
       )}
       {!isWeb && <Toast config={toastConfig} />}
-    </>
+    </NavigationContainer>
   );
 }
 
