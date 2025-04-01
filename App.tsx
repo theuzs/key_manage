@@ -97,7 +97,7 @@ export default function App() {
             position: 'absolute',
             width: '100%',
             height: '100%',
-            backgroundColor: '#1a2a44',
+            backgroundColor: '#0f172a',
             zIndex: -1,
           }}
         />
@@ -118,7 +118,7 @@ export default function App() {
         </>
       );
     } else {
-      return <View style={[styles.background, { backgroundColor: '#1a2a44' }]} />;
+      return <View style={[styles.background, { backgroundColor: '#0f172a' }]} />;
     }
   };
 
@@ -139,13 +139,13 @@ export default function App() {
       <Background />
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-        <Gradient colors={['#1e90ff', '#4682b4']} style={styles.header}>
+        <Gradient colors={['#1e3a8a', '#3b82f6']} style={styles.header}>
           <Text style={styles.headerText}>Gerenciador de Chave</Text>
         </Gradient>
         <View style={styles.content}>
           <Auth />
         </View>
-        <Gradient colors={['#4682b4', '#1e90ff']} style={styles.footer}>
+        <Gradient colors={['#3b82f6', '#1e3a8a']} style={styles.footer}>
           <Text style={styles.footerText}>© 2025 M. Fag - Todos os direitos reservados</Text>
         </Gradient>
       </View>
@@ -179,7 +179,7 @@ export default function App() {
           pauseOnFocusLoss
           draggable
           pauseOnHover
-          theme="light"
+          theme="dark"
           style={{ zIndex: 1000 }}
         />
       )}
@@ -197,10 +197,10 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   header: {
-    height: isWeb ? 80 : 60,
+    height: isWeb ? 90 : 70,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
@@ -209,34 +209,48 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 100,
     paddingTop: StatusBar.currentHeight || 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   headerText: {
-    color: 'white',
-    fontSize: isWeb ? 22 : 18,
-    fontWeight: 'bold',
-    letterSpacing: 1.2,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 5,
+    color: '#ffffff',
+    fontSize: isWeb ? 26 : 22,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 8,
   },
   content: {
     flex: 1,
-    marginTop: isWeb ? 100 : 80,
-    marginBottom: isWeb ? 80 : 60,
-    paddingHorizontal: isWeb ? 55 : 20,
+    marginTop: isWeb ? 110 : 90,
+    marginBottom: isWeb ? 90 : 70,
+    paddingHorizontal: isWeb ? 60 : 25,
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    borderRadius: 15,
   },
   footer: {
-    height: isWeb ? 80 : 60,
+    height: isWeb ? 90 : 70,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   footerText: {
-    color: 'white',
-    fontSize: isWeb ? 14 : 12,
+    color: '#e2e8f0',
+    fontSize: isWeb ? 16 : 14,
     textAlign: 'center',
+    fontWeight: '500',
+    letterSpacing: 0.5,
   },
 });

@@ -17,6 +17,7 @@ interface Props {
   size?: number;
   url: string | null;
   onUpload: (filePath: string) => void;
+  userId?: string; // Adicionado para receber o ID do usuário
 }
 
 const isWeb = Platform.OS === 'web';
@@ -27,6 +28,8 @@ type ButtonProps = {
   onClick: () => void;
   disabled?: boolean;
 };
+
+type LoaderProps = { size: number | 'small' };
 
 const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
   isWeb ? (
@@ -45,11 +48,10 @@ const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
     </TouchableOpacity>
   );
 
-type LoaderProps = { size: number | 'small' };
 const AppLoader = ({ size }: LoaderProps) =>
-  isWeb ? <CircularProgress size={size} /> : <ActivityIndicator size={size} />;
+  isWeb ? <CircularProgress size={size} /> : <ActivityIndicator size={size} color="#22d3ee" />;
 
-export default function Avatar({ url, size = 150, onUpload }: Props) {
+export default function Avatar({ url, size = 150, onUpload, userId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const avatarSize = { height: size, width: size };
@@ -75,7 +77,6 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
     try {
       setUploading(true);
 
-      // Verificar permissões
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
         showToast('error', 'Permissão para acessar a galeria negada.');
@@ -83,11 +84,10 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaType.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 1,
-        exif: false,
+        quality: 0.8,
       });
 
       if (result.canceled || !result.assets || result.assets.length === 0) {
@@ -104,9 +104,13 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
 
       const fileExt = image.uri.split('.').pop()?.toLowerCase() ?? 'jpeg';
       const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `public/${fileName}`; // Adicionando pasta "public" para organização
+      const { data: sessionData } = await supabase.auth.getSession();
+      const currentUserId = userId || sessionData?.session?.user?.id;
+      if (!currentUserId) {
+        throw new Error('Usuário não autenticado');
+      }
+      const filePath = `${currentUserId}/${fileName}`;
 
-      // Preparar o arquivo para upload
       const response = await fetch(image.uri);
       const blob = await response.blob();
 
@@ -125,7 +129,7 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
       const newAvatarUrl = publicUrlData.publicUrl;
 
       setAvatarUrl(newAvatarUrl);
-      onUpload(filePath); // Passa o filePath relativo (ex.: "public/123456.jpeg")
+      onUpload(filePath);
       showToast('success', 'Avatar carregado com sucesso!');
     } catch (error) {
       console.log('Error uploading image:', error);
@@ -157,7 +161,7 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
           {uploading ? (
             <AppLoader size={isWeb ? 24 : 'small'} />
           ) : (
-            <Text style={styles.buttonText}>Upload</Text>
+            <Text style={styles.buttonText}>Carregar Avatar</Text>
           )}
         </AppButton>
       </View>
@@ -168,41 +172,53 @@ export default function Avatar({ url, size = 150, onUpload }: Props) {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
+    marginBottom: 20,
   },
   avatar: {
-    borderRadius: 75,
+    borderRadius: 60,
     overflow: 'hidden',
-    maxWidth: '100%',
+    borderWidth: 2,
+    borderColor: '#22d3ee',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+  },
+  noImage: {
+    backgroundColor: '#1e293b',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  image: {
-    objectFit: 'cover',
-    paddingTop: 0,
-  },
-  noImage: {
-    backgroundColor: '#2e4066', // Alinhado com o tema do KeyHub
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: '#3b517a',
-  },
   noImageText: {
-    color: '#ffffff',
+    color: '#94a3b8',
     fontSize: 16,
+    fontWeight: '500',
   },
   buttonContainer: {
-    marginTop: 10,
+    marginTop: 15,
   },
   uploadButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: '#34d399', // Verde vibrante do KeyHub
-    borderRadius: 5,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#22d3ee',
+    borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#22d3ee',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });

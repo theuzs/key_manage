@@ -14,13 +14,12 @@ import { Session } from '@supabase/supabase-js';
 import Avatar from './Avatar';
 import { showToast } from '../utils/toast';
 import { TextField, Button as MuiButton } from '@mui/material';
-import { useNavigation } from '@react-navigation/native'; // Adicionado para navegação
+import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
 const { width } = Dimensions.get('window');
 const isWeb = Platform.OS === 'web';
 
-// Tipos para o Stack Navigator
 type RootStackParamList = {
   KeyHub: undefined;
   Account: undefined;
@@ -29,7 +28,6 @@ type RootStackParamList = {
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'Account'>;
 
-// Tipos e componentes condicionais
 type TextFieldProps = {
   style?: object;
   value: string;
@@ -37,6 +35,7 @@ type TextFieldProps = {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
 };
+
 type ButtonProps = {
   children: React.ReactNode;
   style?: object;
@@ -61,7 +60,7 @@ const AppTextField = ({ style, value, onChange, onChangeText, placeholder }: Tex
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor="#999" // Ajustado para combinar com o tema
+      placeholderTextColor="#94a3b8"
     />
   );
 
@@ -89,7 +88,7 @@ export default function Account({ session }: { session: Session }) {
   const [username, setUsername] = useState('');
   const [website, setWebsite] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const navigation = useNavigation<NavigationProp>(); // Adicionado para navegação
+  const navigation = useNavigation<NavigationProp>();
 
   useEffect(() => {
     if (session) getProfile();
@@ -149,7 +148,7 @@ export default function Account({ session }: { session: Session }) {
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Editar Perfil</Text>
-        <Avatar url={avatarUrl} size={100} onUpload={handleAvatarUpload} />
+        <Avatar url={avatarUrl} size={120} onUpload={handleAvatarUpload} />
       </View>
 
       <View style={styles.form}>
@@ -201,79 +200,89 @@ export default function Account({ session }: { session: Session }) {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: '#1a2a44', // Azul-marinho escuro do KeyHub
-    paddingVertical: 20,
+    backgroundColor: '#0f172a',
+    paddingVertical: 30,
   },
   header: {
     alignItems: 'center',
-    paddingVertical: 20,
-    backgroundColor: '#14213d', // Tom mais escuro para o header
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    marginBottom: 20,
+    paddingVertical: 25,
+    backgroundColor: '#1e293b',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    marginBottom: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   title: {
-    fontSize: isWeb ? 28 : 24,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 15,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    fontSize: isWeb ? 32 : 28,
+    fontWeight: '700',
+    color: '#e2e8f0',
+    marginBottom: 20,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
   },
   form: {
-    paddingHorizontal: isWeb ? 40 : 20,
+    paddingHorizontal: isWeb ? 50 : 25,
   },
   inputGroup: {
-    marginBottom: 15,
+    marginBottom: 20,
   },
   label: {
     fontSize: 16,
-    color: '#d1d5db', // Cinza claro do KeyHub
-    marginBottom: 5,
+    color: '#94a3b8',
+    marginBottom: 8,
     fontWeight: '600',
+    letterSpacing: 0.5,
   },
   input: {
     width: '100%',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#2e4066', // Cor dos inputs do KeyHub
+    padding: 15,
+    borderRadius: 12,
+    backgroundColor: '#1e293b',
     color: '#ffffff',
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#3b517a', // Borda do KeyHub
+    borderColor: '#334155',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
-    shadowRadius: 2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   updateButton: {
     width: '100%',
-    padding: 15,
-    backgroundColor: '#34d399', // Verde vibrante para ação principal
-    borderRadius: 10,
+    padding: 16,
+    backgroundColor: '#22d3ee',
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    marginTop: 25,
+    shadowColor: '#22d3ee',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   backButton: {
     width: '100%',
-    padding: 15,
-    backgroundColor: '#2e4066', // Cor neutra para "Voltar"
-    borderRadius: 10,
+    padding: 16,
+    backgroundColor: '#64748b',
+    borderRadius: 12,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 15,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

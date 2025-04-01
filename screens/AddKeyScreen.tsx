@@ -42,7 +42,7 @@ export default function AddKeyScreen() {
       if (error) throw error;
 
       showToast('success', 'Chave adicionada com sucesso!');
-      navigation.goBack(); // Volta para KeyHubScreen
+      navigation.goBack();
     } catch (error) {
       console.log('Error adding key:', error);
       showToast('error', 'Erro ao adicionar a chave.');
@@ -59,14 +59,14 @@ export default function AddKeyScreen() {
         placeholder="Nome da chave"
         value={name}
         onChangeText={setName}
-        placeholderTextColor="#999"
+        placeholderTextColor="#94a3b8"
       />
       <TextInput
         style={styles.input}
         placeholder="Localização"
         value={location}
         onChangeText={setLocation}
-        placeholderTextColor="#999"
+        placeholderTextColor="#94a3b8"
       />
       <View style={styles.statusContainer}>
         <TouchableOpacity
@@ -102,45 +102,55 @@ export default function AddKeyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#1a2a44',
+    padding: 25,
+    backgroundColor: '#0f172a',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#e2e8f0',
     textAlign: 'center',
-    marginBottom: 30,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
+    marginBottom: 40,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
   },
   input: {
     width: '100%',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#2e4066',
+    padding: 15,
+    borderRadius: 12,
+    backgroundColor: '#1e293b',
     color: '#ffffff',
     borderWidth: 1,
-    borderColor: '#3b517a',
+    borderColor: '#334155',
     marginBottom: 20,
     fontSize: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   statusContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 25,
   },
   statusButton: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#2e4066',
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: '#1e293b',
     alignItems: 'center',
-    marginHorizontal: 5,
+    marginHorizontal: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   statusButtonActive: {
-    backgroundColor: '#34d399',
+    backgroundColor: '#22d3ee',
+    shadowColor: '#22d3ee',
+    shadowOpacity: 0.4,
   },
   statusButtonText: {
     color: '#ffffff',
@@ -148,21 +158,32 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   addButton: {
-    backgroundColor: '#34d399',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#22d3ee',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 15,
+    shadowColor: '#22d3ee',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   backButton: {
-    backgroundColor: '#f87171',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#f43f5e',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#f43f5e',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

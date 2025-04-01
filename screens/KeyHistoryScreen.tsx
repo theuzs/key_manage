@@ -18,8 +18,8 @@ type KeyHistory = {
   id: string;
   key_id: string;
   user_id: string | null;
-  action: 'retirada' | 'devolução';
-  timestamp: string;
+  action: 'CHECKOUT' | 'CHECKIN';
+  movement_date: string;
   key?: { name: string };
   user?: { full_name: string } | null;
 };
@@ -39,13 +39,13 @@ export default function KeyHistoryScreen() {
     try {
       setLoading(true);
       let query = supabase
-        .from('key_history')
-        .select('id, key_id, user_id, action, timestamp, keys:key_id(name), profiles:user_id(full_name)')
-        .order('timestamp', { ascending: false });
+        .from('key_movements')
+        .select('id, key_id, user_id, action, movement_date, keys:key_id(name), auth_users:user_id(raw_user_meta_data)')
+        .order('movement_date', { ascending: false });
 
-      if (startDate) query = query.gte('timestamp', startDate);
-      if (endDate) query = query.lte('timestamp', `${endDate}T23:59:59Z`);
-      if (userFilter) query = query.eq('user_id', userFilter);
+      if (startDate) query = query.gte('movement_date', `${startDate}T00:00:00Z`);
+      if (endDate) query = query.lte('movement_date', `${endDate}T23:59:59Z`);
+      if (userFilter) query = query.ilike('auth_users.raw_user_meta_data->>full_name', `%${userFilter}%`);
 
       const { data, error } = await query;
 
@@ -56,9 +56,9 @@ export default function KeyHistoryScreen() {
         key_id: item.key_id,
         user_id: item.user_id,
         action: item.action,
-        timestamp: item.timestamp,
+        movement_date: item.movement_date,
         key: item.keys ? { name: item.keys.name } : undefined,
-        user: item.profiles ? { full_name: item.profiles.full_name } : null,
+        user: item.auth_users ? { full_name: item.auth_users.raw_user_meta_data?.full_name } : null,
       }));
 
       setHistory(formattedData);
@@ -76,8 +76,8 @@ export default function KeyHistoryScreen() {
       const rows = history.map(entry => [
         entry.key?.name || 'Desconhecida',
         entry.user?.full_name || 'Ninguém',
-        entry.action,
-        new Date(entry.timestamp).toLocaleString(),
+        entry.action === 'CHECKOUT' ? 'Retirada' : 'Devolução',
+        new Date(entry.movement_date).toLocaleString(),
       ]);
 
       const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -96,9 +96,9 @@ export default function KeyHistoryScreen() {
     <View style={styles.historyItem}>
       <Text style={styles.historyText}>Chave: {item.key?.name || 'Desconhecida'}</Text>
       <Text style={styles.historyText}>Usuário: {item.user?.full_name || 'Ninguém'}</Text>
-      <Text style={styles.historyText}>Ação: {item.action}</Text>
+      <Text style={styles.historyText}>Ação: {item.action === 'CHECKOUT' ? 'Retirada' : 'Devolução'}</Text>
       <Text style={styles.historyText}>
-        Data: {new Date(item.timestamp).toLocaleString()}
+        Data: {new Date(item.movement_date).toLocaleString()}
       </Text>
     </View>
   );
@@ -112,21 +112,21 @@ export default function KeyHistoryScreen() {
         placeholder="Data inicial (YYYY-MM-DD)"
         value={startDate}
         onChangeText={setStartDate}
-        placeholderTextColor="#999"
+        placeholderTextColor="#94a3b8"
       />
       <TextInput
         style={styles.input}
         placeholder="Data final (YYYY-MM-DD)"
         value={endDate}
         onChangeText={setEndDate}
-        placeholderTextColor="#999"
+        placeholderTextColor="#94a3b8"
       />
       <TextInput
         style={styles.input}
-        placeholder="ID do usuário (ou vazio para todos)"
+        placeholder="Nome do usuário (ou vazio para todos)"
         value={userFilter}
         onChangeText={setUserFilter}
-        placeholderTextColor="#999"
+        placeholderTextColor="#94a3b8"
       />
 
       <TouchableOpacity style={styles.filterButton} onPress={fetchHistory}>
@@ -135,11 +135,11 @@ export default function KeyHistoryScreen() {
 
       <TouchableOpacity style={styles.exportButton} onPress={generateExcel}>
         <Icon name="file-download" size={20} color="#fff" />
-        <Text style={styles.buttonText}>Exportar para CSV</Text>
+        <Text style={styles.buttonText}> Exportar para CSV</Text>
       </TouchableOpacity>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#ffffff" />
+        <ActivityIndicator size="large" color="#22d3ee" />
       ) : (
         <FlatList
           data={history}
@@ -156,67 +156,93 @@ export default function KeyHistoryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a2a44',
-    padding: 20,
-    paddingTop: 70,
+    backgroundColor: '#0f172a',
+    padding: 25,
+    paddingTop: 80,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#e2e8f0',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 6,
   },
   input: {
     width: '100%',
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: '#2e4066',
+    padding: 15,
+    borderRadius: 12,
+    backgroundColor: '#1e293b',
     color: '#ffffff',
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#3b517a',
+    borderColor: '#334155',
+    fontSize: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   filterButton: {
-    backgroundColor: '#34d399',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#22d3ee',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     marginBottom: 15,
+    shadowColor: '#22d3ee',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   exportButton: {
     flexDirection: 'row',
-    backgroundColor: '#f87171',
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: '#f43f5e',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 25,
+    shadowColor: '#f43f5e',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 5,
+    fontWeight: '700',
+    marginLeft: 8,
+    letterSpacing: 0.5,
   },
   historyItem: {
-    backgroundColor: '#2e4066',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
+    backgroundColor: '#1e293b',
+    padding: 18,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
   },
   historyText: {
-    color: '#d1d5db',
-    fontSize: 14,
-    marginBottom: 5,
+    color: '#cbd5e1',
+    fontSize: 15,
+    marginBottom: 6,
+    fontWeight: '500',
   },
   emptyText: {
-    fontSize: 16,
-    color: '#d1d5db',
+    fontSize: 18,
+    color: '#94a3b8',
     textAlign: 'center',
-    marginTop: 20,
+    marginTop: 30,
+    fontWeight: '500',
   },
   listContent: {
-    paddingBottom: 20,
+    paddingBottom: 30,
   },
 });

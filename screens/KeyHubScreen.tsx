@@ -58,7 +58,7 @@ export default function KeyHubScreen() {
       setLoading(true);
       const { data, error } = await supabase
         .from('keys')
-        .select('id, name, location, status, user_id, profiles:user_id(full_name)')
+        .select('id, name, location, status, user_id')
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -69,7 +69,7 @@ export default function KeyHubScreen() {
         location: item.location,
         status: item.status,
         user_id: item.user_id,
-        user: item.profiles ? { full_name: item.profiles.full_name } : null,
+        user: null,
       }));
 
       setKeys(formattedData);
@@ -98,15 +98,20 @@ export default function KeyHubScreen() {
         .eq('id', keyId)
         .eq('status', 'disponível');
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        if (updateError.code === '23514') {
+          showToast('error', 'A chave já foi reservada por outro usuário.');
+        }
+        throw updateError;
+      }
 
       const { error: historyError } = await supabase
-        .from('key_history')
+        .from('key_movements')
         .insert({
           key_id: keyId,
           user_id: userId,
-          action: 'retirada',
-          timestamp: new Date().toISOString(),
+          action: 'CHECKOUT',
+          movement_date: new Date().toISOString(),
         });
 
       if (historyError) throw historyError;
@@ -115,7 +120,9 @@ export default function KeyHubScreen() {
       fetchKeys();
     } catch (error) {
       console.log('Error reserving key:', error);
-      showToast('error', 'Erro ao reservar a chave.');
+      if (!error.message.includes('23514')) {
+        showToast('error', 'Erro ao reservar a chave.');
+      }
     } finally {
       setLoading(false);
     }
@@ -130,6 +137,20 @@ export default function KeyHubScreen() {
         return;
       }
 
+      const userId = session.session.user.id;
+
+      const { data: keyData, error: fetchError } = await supabase
+        .from('keys')
+        .select('user_id')
+        .eq('id', keyId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (keyData.user_id !== userId) {
+        showToast('error', 'Você não pode devolver uma chave que não reservou.');
+        return;
+      }
+
       const { error: updateError } = await supabase
         .from('keys')
         .update({ status: 'disponível', user_id: null })
@@ -139,12 +160,12 @@ export default function KeyHubScreen() {
       if (updateError) throw updateError;
 
       const { error: historyError } = await supabase
-        .from('key_history')
+        .from('key_movements')
         .insert({
           key_id: keyId,
-          user_id: session.session.user.id,
-          action: 'devolução',
-          timestamp: new Date().toISOString(),
+          user_id: userId,
+          action: 'CHECKIN',
+          movement_date: new Date().toISOString(),
         });
 
       if (historyError) throw historyError;
@@ -153,7 +174,9 @@ export default function KeyHubScreen() {
       fetchKeys();
     } catch (error) {
       console.log('Error returning key:', error);
-      showToast('error', 'Erro ao devolver a chave.');
+      if (!error.message.includes('Você não pode devolver')) {
+        showToast('error', 'Erro ao devolver a chave.');
+      }
     } finally {
       setLoading(false);
     }
@@ -163,14 +186,13 @@ export default function KeyHubScreen() {
     (key) =>
       key.name.toLowerCase().includes(filter.toLowerCase()) ||
       key.location.toLowerCase().includes(filter.toLowerCase()) ||
-      key.status.toLowerCase().includes(filter.toLowerCase()) ||
-      (key.user?.full_name && key.user.full_name.toLowerCase().includes(filter.toLowerCase()))
+      key.status.toLowerCase().includes(filter.toLowerCase())
   );
 
   const renderKeyItem = ({ item }: { item: Key }) => (
     <Animated.View style={[styles.keyItem, { opacity: fadeAnim }]}>
       <View style={styles.keyRow}>
-        <Icon name="vpn-key" size={24} color="#a3bffa" style={styles.keyIcon} />
+        <Icon name="vpn-key" size={26} color="#22d3ee" style={styles.keyIcon} />
         <View style={styles.keyInfo}>
           <Text style={styles.keyName}>{item.name}</Text>
           <Text style={styles.keyDetail}>Local: {item.location}</Text>
@@ -182,9 +204,6 @@ export default function KeyHubScreen() {
               {item.status}
             </Text>
           </View>
-          <Text style={styles.keyDetail}>
-            Com: {item.user?.full_name || 'Ninguém'}
-          </Text>
         </View>
       </View>
       <View style={styles.actionButtons}>
@@ -194,7 +213,7 @@ export default function KeyHubScreen() {
             onPress={() => reserveKey(item.id)}
             disabled={loading}
           >
-            <Icon name="lock-open" size={18} color="#fff" />
+            <Icon name="lock-open" size={20} color="#fff" />
             <Text style={styles.buttonText}> Reservar</Text>
           </TouchableOpacity>
         ) : (
@@ -203,7 +222,7 @@ export default function KeyHubScreen() {
             onPress={() => returnKey(item.id)}
             disabled={loading}
           >
-            <Icon name="lock" size={18} color="#fff" />
+            <Icon name="lock" size={20} color="#fff" />
             <Text style={styles.buttonText}> Devolver</Text>
           </TouchableOpacity>
         )}
@@ -235,7 +254,7 @@ export default function KeyHubScreen() {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
-        <Icon name={menuVisible ? 'close' : 'menu'} size={30} color="#a3bffa" />
+        <Icon name={menuVisible ? 'close' : 'menu'} size={32} color="#22d3ee" />
       </TouchableOpacity>
 
       <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
@@ -247,7 +266,7 @@ export default function KeyHubScreen() {
             toggleMenu();
           }}
         >
-          <Icon name="add-circle-outline" size={24} color="#fff" />
+          <Icon name="add-circle-outline" size={26} color="#fff" />
           <Text style={styles.sidebarButtonText}> Adicionar Chave</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -257,7 +276,7 @@ export default function KeyHubScreen() {
             toggleMenu();
           }}
         >
-          <Icon name="person-outline" size={24} color="#fff" />
+          <Icon name="person-outline" size={26} color="#fff" />
           <Text style={styles.sidebarButtonText}> Configurar Perfil</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -267,14 +286,14 @@ export default function KeyHubScreen() {
             toggleMenu();
           }}
         >
-          <Icon name="history" size={24} color="#fff" />
+          <Icon name="history" size={26} color="#fff" />
           <Text style={styles.sidebarButtonText}> Relatório de Movimentação</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.signOutButton}
           onPress={handleSignOut}
         >
-          <Icon name="logout" size={24} color="#fff" />
+          <Icon name="logout" size={26} color="#fff" />
           <Text style={styles.sidebarButtonText}> Sair</Text>
         </TouchableOpacity>
       </Animated.View>
@@ -283,17 +302,17 @@ export default function KeyHubScreen() {
         <Text style={styles.title}>Hub de Chaves - SENAI</Text>
         <TextInput
           style={styles.filterInput}
-          placeholder="Filtrar por nome, local, status ou pessoa..."
+          placeholder="Filtrar por nome, local ou status..."
           value={filter}
           onChangeText={setFilter}
-          placeholderTextColor="#a3bffa"
+          placeholderTextColor="#94a3b8"
         />
         <TouchableOpacity style={styles.refreshButton} onPress={fetchKeys} disabled={loading}>
-          <Icon name="refresh" size={24} color="#fff" />
+          <Icon name="refresh" size={26} color="#fff" />
           <Text style={styles.buttonText}> Atualizar</Text>
         </TouchableOpacity>
         {loading ? (
-          <ActivityIndicator size="large" color="#a3bffa" />
+          <ActivityIndicator size="large" color="#22d3ee" />
         ) : (
           <FlatList
             data={filteredKeys}
@@ -311,15 +330,15 @@ export default function KeyHubScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0d1b2a',
+    backgroundColor: '#0f172a',
   },
   menuButton: {
     position: 'absolute',
-    top: 20,
-    left: 20,
+    top: 25,
+    left: 25,
     zIndex: 20,
-    backgroundColor: '#1e3a8a',
-    padding: 12,
+    backgroundColor: '#1e293b',
+    padding: 14,
     borderRadius: 50,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -333,9 +352,9 @@ const styles = StyleSheet.create({
     left: 0,
     width: 300,
     height: '100%',
-    backgroundColor: '#1e3a8a',
-    paddingVertical: 80,
-    paddingHorizontal: 20,
+    backgroundColor: '#1e293b',
+    paddingVertical: 90,
+    paddingHorizontal: 25,
     zIndex: 10,
     shadowColor: '#000',
     shadowOffset: { width: 5, height: 0 },
@@ -344,72 +363,73 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   sidebarTitle: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 40,
+    color: '#e2e8f0',
+    marginBottom: 50,
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 4,
+    textShadowRadius: 6,
   },
   sidebarButton: {
     flexDirection: 'row',
-    backgroundColor: '#2563eb',
-    padding: 16,
+    backgroundColor: '#22d3ee',
+    padding: 18,
     borderRadius: 12,
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowColor: '#22d3ee',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowRadius: 6,
     elevation: 5,
   },
   signOutButton: {
     flexDirection: 'row',
-    backgroundColor: '#dc2626',
-    padding: 16,
+    backgroundColor: '#f43f5e',
+    padding: 18,
     borderRadius: 12,
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowColor: '#f43f5e',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowRadius: 6,
     elevation: 5,
   },
   sidebarButtonText: {
     color: '#ffffff',
     fontSize: 18,
     fontWeight: '600',
-    marginLeft: 10,
+    marginLeft: 12,
+    letterSpacing: 0.5,
   },
   mainContent: {
     flex: 1,
-    padding: 20,
-    paddingTop: 80,
+    padding: 25,
+    paddingTop: 90,
   },
   title: {
-    fontSize: 32,
+    fontSize: 34,
     fontWeight: '800',
-    color: '#a3bffa',
+    color: '#e2e8f0',
     textAlign: 'center',
-    marginBottom: 25,
+    marginBottom: 30,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 6,
   },
   filterInput: {
     width: '100%',
-    padding: 15,
+    padding: 16,
     borderRadius: 12,
-    backgroundColor: '#1e3a8a',
+    backgroundColor: '#1e293b',
     color: '#ffffff',
     borderWidth: 1,
-    borderColor: '#3b82f6',
+    borderColor: '#334155',
     marginBottom: 20,
     fontSize: 16,
     shadowColor: '#000',
@@ -419,20 +439,20 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     flexDirection: 'row',
-    backgroundColor: '#2563eb',
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: '#22d3ee',
+    padding: 14,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    marginBottom: 25,
+    shadowColor: '#22d3ee',
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 5,
+    shadowRadius: 6,
     elevation: 5,
   },
   keyItem: {
-    backgroundColor: '#1e3a8a',
+    backgroundColor: '#1e293b',
     padding: 20,
     borderRadius: 15,
     marginBottom: 15,
@@ -453,28 +473,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   keyName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#ffffff',
-    marginBottom: 5,
+    color: '#e2e8f0',
+    marginBottom: 6,
   },
   keyDetail: {
     fontSize: 16,
-    color: '#a3bffa',
-    marginTop: 4,
+    color: '#94a3b8',
+    marginTop: 5,
+    fontWeight: '500',
   },
   statusContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 5,
   },
   available: {
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-    backgroundColor: '#10b981',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    backgroundColor: '#22d3ee',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -482,9 +503,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-    backgroundColor: '#ef4444',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
+    backgroundColor: '#f43f5e',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -495,28 +516,28 @@ const styles = StyleSheet.create({
   },
   reserveButton: {
     flexDirection: 'row',
-    backgroundColor: '#10b981',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    backgroundColor: '#22d3ee',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
     borderRadius: 10,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#22d3ee',
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 5,
     elevation: 4,
   },
   returnButton: {
     flexDirection: 'row',
-    backgroundColor: '#ef4444',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
+    backgroundColor: '#f43f5e',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
     borderRadius: 10,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: '#f43f5e',
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowRadius: 5,
     elevation: 4,
   },
   buttonText: {
@@ -524,10 +545,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+    letterSpacing: 0.5,
   },
   emptyText: {
     fontSize: 18,
-    color: '#a3bffa',
+    color: '#94a3b8',
     textAlign: 'center',
     marginTop: 30,
     fontWeight: '500',
