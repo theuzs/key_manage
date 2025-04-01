@@ -15,12 +15,11 @@ import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
-// Definir o tipo das rotas para o Stack Navigator
 type RootStackParamList = {
   KeyHub: undefined;
   Account: undefined;
   AddKey: undefined;
-  KeyHistory: undefined; // Adicionei a nova tela
+  KeyHistory: undefined;
 };
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'KeyHub'>;
@@ -51,7 +50,7 @@ export default function KeyHubScreen() {
       setLoading(true);
       const { data, error } = await supabase
         .from('keys')
-        .select('id, name, location, status, user_id, profiles!user_id(full_name)')
+        .select('id, name, location, status, user_id, profiles:user_id(full_name)')
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -95,10 +94,9 @@ export default function KeyHubScreen() {
           <View style={styles.statusContainer}>
             <Text style={styles.keyDetail}>Status: </Text>
             <Text
-              style={[
-                styles.statusText,
-                item.status === 'disponível' ? styles.available : styles.inUse,
-              ]}
+              style={
+                item.status === 'disponível' ? styles.available : styles.inUse
+              }
             >
               {item.status}
             </Text>
@@ -119,8 +117,7 @@ export default function KeyHubScreen() {
       toValue,
       duration: 300,
       useNativeDriver: true,
-    }).start();
-    setMenuVisible(!menuVisible);
+    }).start(() => setMenuVisible(!menuVisible));
   };
 
   const handleSignOut = async () => {
@@ -136,12 +133,10 @@ export default function KeyHubScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Botão de Menu */}
       <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
         <Text style={styles.menuButtonText}>{menuVisible ? '✕' : '☰'}</Text>
       </TouchableOpacity>
 
-      {/* Menu Lateral */}
       <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
         <Text style={styles.sidebarTitle}>Menu</Text>
         <TouchableOpacity
@@ -172,7 +167,7 @@ export default function KeyHubScreen() {
           <Text style={styles.sidebarButtonText}>Atualizar Lista</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.sidebarButton} // Novo botão para KeyHistory
+          style={styles.sidebarButton}
           onPress={() => {
             navigation.navigate('KeyHistory');
             toggleMenu();
@@ -181,14 +176,13 @@ export default function KeyHubScreen() {
           <Text style={styles.sidebarButtonText}>Relatório de Movimentação</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.signOutButton} // Estilo diferente para destacar
+          style={styles.signOutButton}
           onPress={handleSignOut}
         >
           <Text style={styles.sidebarButtonText}>Sair</Text>
         </TouchableOpacity>
       </Animated.View>
 
-      {/* Conteúdo Principal */}
       <View style={styles.mainContent}>
         <Text style={styles.title}>Hub de Chaves - SENAI</Text>
         <TextInput
@@ -269,7 +263,7 @@ const styles = StyleSheet.create({
     borderColor: '#3b517a',
   },
   signOutButton: {
-    backgroundColor: '#f87171', // Vermelho para destacar o "Sair"
+    backgroundColor: '#f87171',
     padding: 15,
     borderRadius: 10,
     marginBottom: 15,
@@ -353,9 +347,21 @@ const styles = StyleSheet.create({
   },
   available: {
     backgroundColor: '#34d399',
+    fontSize: 14,
+    fontWeight: 'bold',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    color: '#ffffff',
   },
   inUse: {
     backgroundColor: '#f87171',
+    fontSize: 14,
+    fontWeight: 'bold',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    color: '#ffffff',
   },
   emptyText: {
     fontSize: 16,

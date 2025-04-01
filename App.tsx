@@ -1,4 +1,4 @@
-import 'react-native-gesture-handler'; // Necessário para o stack navigator
+import 'react-native-gesture-handler';
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
@@ -20,7 +20,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Session } from '@supabase/supabase-js';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { LinearGradient, LinearGradientProps } from 'expo-linear-gradient';
+import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
 import { showToast, toastConfig } from './utils/toast';
 
@@ -36,25 +36,34 @@ export default function App() {
 
   const images = [
     require('./assets/background_1.png'),
-    // require('./assets/background_2.png'),
-    // require('./assets/background_3.png'),
   ];
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) showToast('success', 'Sessão iniciada com sucesso!');
-    });
+    const fetchSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        if (session) showToast('success', 'Sessão iniciada com sucesso!');
+      } catch (error) {
+        console.error('Error fetching session:', error);
+        showToast('error', 'Erro ao carregar sessão');
+      }
+    };
+    fetchSession();
 
-    supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) showToast('info', 'Estado de autenticação alterado!');
       else showToast('warn', 'Usuário deslogado.');
     });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
-    if (!isWeb && !session) { // Carrossel só na tela de login
+    if (!isWeb && !session && images.length > 1) {
       const interval = setInterval(() => {
         const nextIndex = (currentImageIndex + 1) % images.length;
 
@@ -83,19 +92,17 @@ export default function App() {
   const Background = () => {
     if (isWeb) {
       return (
-        <div
+        <View
           style={{
             position: 'absolute',
             width: '100%',
             height: '100%',
-            backgroundImage: `url(${images[currentImageIndex].default})`,
-            backgroundSize: 'cover',
-            opacity: 1,
+            backgroundColor: '#1a2a44',
             zIndex: -1,
           }}
         />
       );
-    } else if (!session) { // Fundo animado só na tela de login
+    } else if (!session && images.length > 1) {
       return (
         <>
           <Animated.Image
@@ -115,24 +122,17 @@ export default function App() {
     }
   };
 
-  const Gradient = ({
-    children,
-    colors,
-    style,
-  }: {
-    children: React.ReactNode;
-    colors: LinearGradientProps['colors'];
-    style?: object;
-  }) =>
+  const Gradient = ({ children, colors, style }) => (
     isWeb ? (
-      <div style={{ ...style, background: `linear-gradient(to bottom, ${colors.join(', ')})` }}>
+      <View style={{ ...style, backgroundColor: colors[0] }}>
         {children}
-      </div>
+      </View>
     ) : (
       <LinearGradient colors={colors} style={style}>
         {children}
       </LinearGradient>
-    );
+    )
+  );
 
   const AuthScreen = () => (
     <>

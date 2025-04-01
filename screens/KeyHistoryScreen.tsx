@@ -13,8 +13,6 @@ import { showToast } from '../utils/toast';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { Buffer } from 'buffer';
-import ExcelJS from 'exceljs'; // Instale com: npm install exceljs
 
 type KeyHistory = {
   id: string;
@@ -31,7 +29,7 @@ export default function KeyHistoryScreen() {
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [userFilter, setUserFilter] = useState(''); // Deixe vazio para "todos"
+  const [userFilter, setUserFilter] = useState('');
 
   useEffect(() => {
     fetchHistory();
@@ -42,7 +40,7 @@ export default function KeyHistoryScreen() {
       setLoading(true);
       let query = supabase
         .from('key_history')
-        .select('id, key_id, user_id, action, timestamp, keys(name), profiles!user_id(full_name)')
+        .select('id, key_id, user_id, action, timestamp, keys:key_id(name), profiles:user_id(full_name)')
         .order('timestamp', { ascending: false });
 
       if (startDate) query = query.gte('timestamp', startDate);
@@ -73,33 +71,25 @@ export default function KeyHistoryScreen() {
   }
 
   async function generateExcel() {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Relatório de Movimentação');
+    try {
+      const headers = ['Chave', 'Usuário', 'Ação', 'Data/Hora'];
+      const rows = history.map(entry => [
+        entry.key?.name || 'Desconhecida',
+        entry.user?.full_name || 'Ninguém',
+        entry.action,
+        new Date(entry.timestamp).toLocaleString(),
+      ]);
 
-    worksheet.columns = [
-      { header: 'Chave', key: 'key_name', width: 20 },
-      { header: 'Usuário', key: 'user_name', width: 20 },
-      { header: 'Ação', key: 'action', width: 15 },
-      { header: 'Data/Hora', key: 'timestamp', width: 25 },
-    ];
+      const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+      const fileUri = `${FileSystem.documentDirectory}relatorio_movimentacao.csv`;
+      await FileSystem.writeAsStringAsync(fileUri, csvContent);
 
-    history.forEach((entry) => {
-      worksheet.addRow({
-        key_name: entry.key?.name || 'Desconhecida',
-        user_name: entry.user?.full_name || 'Ninguém',
-        action: entry.action,
-        timestamp: new Date(entry.timestamp).toLocaleString(),
-      });
-    });
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const fileUri = `${FileSystem.documentDirectory}relatorio_movimentacao.xlsx`;
-    await FileSystem.writeAsStringAsync(fileUri, Buffer.from(buffer).toString('base64'), {
-      encoding: FileSystem.EncodingType.Base64,
-    });
-
-    await Sharing.shareAsync(fileUri);
-    showToast('success', 'Relatório gerado e compartilhado!');
+      await Sharing.shareAsync(fileUri);
+      showToast('success', 'Relatório gerado e compartilhado!');
+    } catch (error) {
+      console.log('Error generating CSV:', error);
+      showToast('error', 'Erro ao gerar o relatório.');
+    }
   }
 
   const renderHistoryItem = ({ item }: { item: KeyHistory }) => (
@@ -145,7 +135,7 @@ export default function KeyHistoryScreen() {
 
       <TouchableOpacity style={styles.exportButton} onPress={generateExcel}>
         <Icon name="file-download" size={20} color="#fff" />
-        <Text style={styles.buttonText}>Exportar para Excel</Text>
+        <Text style={styles.buttonText}>Exportar para CSV</Text>
       </TouchableOpacity>
 
       {loading ? (
