@@ -13,6 +13,7 @@ import { showToast } from '../utils/toast';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import * as XLSX from 'xlsx';
 
 type KeyHistory = {
   id: string;
@@ -40,16 +41,29 @@ export default function KeyHistoryScreen() {
       setLoading(true);
       let query = supabase
         .from('key_movements')
-        .select('id, key_id, user_id, action, movement_date, keys:key_id(name), auth_users:user_id(raw_user_meta_data)')
+        .select('id, key_id, user_id, action, movement_date, keys:key_id(name)')
         .order('movement_date', { ascending: false });
 
       if (startDate) query = query.gte('movement_date', `${startDate}T00:00:00Z`);
       if (endDate) query = query.lte('movement_date', `${endDate}T23:59:59Z`);
-      if (userFilter) query = query.ilike('auth_users.raw_user_meta_data->>full_name', `%${userFilter}%`);
 
       const { data, error } = await query;
 
       if (error) throw error;
+
+      // Buscar metadados dos usuários separadamente
+      const userIds = [...new Set(data.map((item: any) => item.user_id).filter(Boolean))];
+      const usersData: { [key: string]: { full_name: string } } = {};
+      if (userIds.length > 0) {
+        const { data: users, error: userError } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
+        if (userError) throw userError;
+        users.forEach((user: any) => {
+          usersData[user.id] = { full_name: user.full_name };
+        });
+      }
 
       const formattedData: KeyHistory[] = (data || []).map((item: any) => ({
         id: item.id,
@@ -58,10 +72,18 @@ export default function KeyHistoryScreen() {
         action: item.action,
         movement_date: item.movement_date,
         key: item.keys ? { name: item.keys.name } : undefined,
-        user: item.auth_users ? { full_name: item.auth_users.raw_user_meta_data?.full_name } : null,
+        user: item.user_id && usersData[item.user_id] ? { full_name: usersData[item.user_id].full_name } : null,
       }));
 
-      setHistory(formattedData);
+      // Aplicar filtro de usuário localmente, se fornecido
+      if (userFilter) {
+        const filteredData = formattedData.filter(
+          (item) => item.user?.full_name?.toLowerCase().includes(userFilter.toLowerCase())
+        );
+        setHistory(filteredData);
+      } else {
+        setHistory(formattedData);
+      }
     } catch (error) {
       console.log('Error fetching history:', error);
       showToast('error', 'Erro ao carregar o histórico.');
@@ -80,15 +102,22 @@ export default function KeyHistoryScreen() {
         new Date(entry.movement_date).toLocaleString(),
       ]);
 
-      const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-      const fileUri = `${FileSystem.documentDirectory}relatorio_movimentacao.csv`;
-      await FileSystem.writeAsStringAsync(fileUri, csvContent);
+      const worksheetData = [headers, ...rows];
+      const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Movimentações');
+
+      const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
+      const fileUri = `${FileSystem.documentDirectory}relatorio_movimentacao.xlsx`;
+      await FileSystem.writeAsStringAsync(fileUri, wbout, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
 
       await Sharing.shareAsync(fileUri);
-      showToast('success', 'Relatório gerado e compartilhado!');
+      showToast('success', 'Relatório XLSX gerado e compartilhado!');
     } catch (error) {
-      console.log('Error generating CSV:', error);
-      showToast('error', 'Erro ao gerar o relatório.');
+      console.log('Error generating XLSX:', error);
+      showToast('error', 'Erro ao gerar o relatório XLSX.');
     }
   }
 
@@ -135,7 +164,7 @@ export default function KeyHistoryScreen() {
 
       <TouchableOpacity style={styles.exportButton} onPress={generateExcel}>
         <Icon name="file-download" size={20} color="#fff" />
-        <Text style={styles.buttonText}> Exportar para CSV</Text>
+        <Text style={styles.buttonText}> Exportar para XLSX</Text>
       </TouchableOpacity>
 
       {loading ? (

@@ -21,10 +21,11 @@
     "@supabase/supabase-js": "^2.48.0",
     "exceljs": "^4.4.0",
     "expo": "~52.0.38",
-    "expo-file-system": "~18.0.11",
+    "expo-document-picker": "~13.0.3",
+    "expo-file-system": "~18.0.12",
     "expo-image-picker": "~16.0.6",
     "expo-linear-gradient": "^14.0.2",
-    "expo-sharing": "^13.0.1",
+    "expo-sharing": "~13.0.1",
     "expo-status-bar": "~2.0.1",
     "expo-system-ui": "~4.0.8",
     "react": "18.3.1",
@@ -35,7 +36,8 @@
     "react-native-toast-message": "^2.2.1",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.19.13",
-    "react-toastify": "^11.0.3"
+    "react-toastify": "^11.0.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
