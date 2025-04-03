@@ -168,7 +168,7 @@ export default function KeyHistoryScreen() {
       </TouchableOpacity>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#22d3ee" />
+        <ActivityIndicator size="large" color="#2596be" />
       ) : (
         <FlatList
           data={history}
@@ -215,12 +215,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   filterButton: {
-    backgroundColor: '#22d3ee',
+    backgroundColor: '#2596be',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 15,
-    shadowColor: '#22d3ee',
+    shadowColor: '#2596be',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -228,13 +228,13 @@ const styles = StyleSheet.create({
   },
   exportButton: {
     flexDirection: 'row',
-    backgroundColor: '#f43f5e',
+    backgroundColor: '#23a464',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 25,
-    shadowColor: '#f43f5e',
+    shadowColor: '#23a464',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,

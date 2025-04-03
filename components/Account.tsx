@@ -256,11 +256,11 @@ const styles = StyleSheet.create({
   updateButton: {
     width: '100%',
     padding: 16,
-    backgroundColor: '#22d3ee',
+    backgroundColor: '#2596be',
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 25,
-    shadowColor: '#22d3ee',
+    shadowColor: '#2596be',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,

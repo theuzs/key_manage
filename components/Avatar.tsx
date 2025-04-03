@@ -49,7 +49,7 @@ const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
   );
 
 const AppLoader = ({ size }: LoaderProps) =>
-  isWeb ? <CircularProgress size={size} /> : <ActivityIndicator size={size} color="#22d3ee" />;
+  isWeb ? <CircularProgress size={size} /> : <ActivityIndicator size={size} color="#2596be" />;
 
 export default function Avatar({ url, size = 150, onUpload, userId }: Props) {
   const [uploading, setUploading] = useState(false);
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: '#22d3ee',
+    borderColor: '#2596be',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -206,10 +206,10 @@ const styles = StyleSheet.create({
   uploadButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
-    backgroundColor: '#22d3ee',
+    backgroundColor: '#2596be',
     borderRadius: 10,
     alignItems: 'center',
-    shadowColor: '#22d3ee',
+    shadowColor: '#2596be',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 5,

@@ -192,7 +192,7 @@ export default function KeyHubScreen() {
   const renderKeyItem = ({ item }: { item: Key }) => (
     <Animated.View style={[styles.keyItem, { opacity: fadeAnim }]}>
       <View style={styles.keyRow}>
-        <Icon name="vpn-key" size={26} color="#22d3ee" style={styles.keyIcon} />
+        <Icon name="vpn-key" size={26} color="#2596be" style={styles.keyIcon} />
         <View style={styles.keyInfo}>
           <Text style={styles.keyName}>{item.name}</Text>
           <Text style={styles.keyDetail}>Local: {item.location}</Text>
@@ -254,7 +254,7 @@ export default function KeyHubScreen() {
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
-        <Icon name={menuVisible ? 'close' : 'menu'} size={32} color="#22d3ee" />
+        <Icon name={menuVisible ? 'close' : 'menu'} size={32} color="#2596be" />
       </TouchableOpacity>
 
       <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
@@ -312,7 +312,7 @@ export default function KeyHubScreen() {
           <Text style={styles.buttonText}> Atualizar</Text>
         </TouchableOpacity>
         {loading ? (
-          <ActivityIndicator size="large" color="#22d3ee" />
+          <ActivityIndicator size="large" color="#2596be" />
         ) : (
           <FlatList
             data={filteredKeys}
@@ -374,13 +374,13 @@ const styles = StyleSheet.create({
   },
   sidebarButton: {
     flexDirection: 'row',
-    backgroundColor: '#22d3ee',
+    backgroundColor: '#2596be',
     padding: 18,
     borderRadius: 12,
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#22d3ee',
+    shadowColor: '#2596be',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -388,13 +388,13 @@ const styles = StyleSheet.create({
   },
   signOutButton: {
     flexDirection: 'row',
-    backgroundColor: '#f43f5e',
+    backgroundColor: '#780603',
     padding: 18,
     borderRadius: 12,
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#f43f5e',
+    shadowColor: '#780603',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -439,13 +439,13 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     flexDirection: 'row',
-    backgroundColor: '#22d3ee',
+    backgroundColor: '#2596be',
     padding: 14,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 25,
-    shadowColor: '#22d3ee',
+    shadowColor: '#2596be',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-    backgroundColor: '#22d3ee',
+    backgroundColor: '#2596be',
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
-    backgroundColor: '#f43f5e',
+    backgroundColor: '#780603',
     paddingVertical: 5,
     paddingHorizontal: 12,
     borderRadius: 8,
@@ -516,12 +516,12 @@ const styles = StyleSheet.create({
   },
   reserveButton: {
     flexDirection: 'row',
-    backgroundColor: '#22d3ee',
+    backgroundColor: '#2596be',
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: 10,
     alignItems: 'center',
-    shadowColor: '#22d3ee',
+    shadowColor: '#2596be',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
@@ -529,12 +529,12 @@ const styles = StyleSheet.create({
   },
   returnButton: {
     flexDirection: 'row',
-    backgroundColor: '#f43f5e',
+    backgroundColor: '#780603',
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: 10,
     alignItems: 'center',
-    shadowColor: '#f43f5e',
+    shadowColor: '#780603',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
     shadowRadius: 5,
