@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
-import {
-  StyleSheet,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { showToast } from '../utils/toast';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import QRCode from 'react-native-qrcode-svg';
+import { printAsync } from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 type RootStackParamList = {
   KeyHub: undefined;
@@ -26,6 +22,7 @@ export default function AddKeyScreen() {
   const [status, setStatus] = useState<'disponível' | 'em uso'>('disponível');
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation<NavigationProp>();
+  const qrRef = useRef(null);
 
   async function addKey() {
     if (!name || !location) {
@@ -41,6 +38,7 @@ export default function AddKeyScreen() {
 
       if (error) throw error;
 
+      await generatePDF();
       showToast('success', 'Chave adicionada com sucesso!');
       navigation.goBack();
     } catch (error) {
@@ -49,6 +47,26 @@ export default function AddKeyScreen() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function generatePDF() {
+    const chaveInfo = { name, location };
+    const qrData = JSON.stringify(chaveInfo);
+
+    let qrCodeBase64;
+    qrRef.current.toDataURL((data) => {
+      qrCodeBase64 = data;
+    });
+
+    const html = `
+      <h1>Gerenciador de Chaves</h1>
+      <p>Nome: ${name}</p>
+      <p>Local: ${location}</p>
+      <img src="${qrCodeBase64}" style="width: 100px; height: 100px;" />
+    `;
+
+    const { uri } = await printAsync({ html });
+    await Sharing.shareAsync(uri);
   }
 
   return (
@@ -82,6 +100,15 @@ export default function AddKeyScreen() {
           <Text style={styles.statusButtonText}>Em Uso</Text>
         </TouchableOpacity>
       </View>
+      <View style={styles.qrContainer}>
+        {name && location && (
+          <QRCode
+            value={JSON.stringify({ name, location })}
+            size={150}
+            getRef={(ref) => (qrRef.current = ref)}
+          />
+        )}
+      </View>
       <TouchableOpacity style={styles.addButton} onPress={addKey} disabled={loading}>
         {loading ? (
           <ActivityIndicator size="small" color="#ffffff" />
@@ -111,7 +138,7 @@ const styles = StyleSheet.create({
     color: '#e2e8f0',
     textAlign: 'center',
     marginBottom: 40,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: 'rgba(0, 0, 0 Kashmir Blue0.5)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 6,
   },
@@ -156,6 +183,10 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  qrContainer: {
+    alignItems: 'center',
+    marginBottom: 25,
   },
   addButton: {
     backgroundColor: '#2596be',
