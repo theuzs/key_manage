@@ -8,12 +8,12 @@ import {
   Platform,
   Dimensions,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { Session } from '@supabase/supabase-js';
 import Avatar from './Avatar';
 import { showToast } from '../utils/toast';
-import { TextField, Button as MuiButton } from '@mui/material';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 
@@ -28,59 +28,35 @@ type RootStackParamList = {
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'Account'>;
 
-type TextFieldProps = {
-  style?: object;
+type AppTextFieldProps = {
   value: string;
-  onChangeText?: (text: string) => void;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChangeText: (text: string) => void;
   placeholder?: string;
+  style?: object;
 };
 
-type ButtonProps = {
+const AppTextField = ({ value, onChangeText, placeholder, style }: AppTextFieldProps) => (
+  <TextInput
+    style={[styles.input, style]}
+    value={value}
+    onChangeText={onChangeText}
+    placeholder={placeholder}
+    placeholderTextColor="#94a3b8"
+  />
+);
+
+type AppButtonProps = {
+  onPress: () => void;
   children: React.ReactNode;
   style?: object;
-  onClick: () => void;
   disabled?: boolean;
 };
 
-const AppTextField = ({ style, value, onChange, onChangeText, placeholder }: TextFieldProps) =>
-  isWeb ? (
-    <TextField
-      fullWidth
-      variant="outlined"
-      margin="normal"
-      value={value}
-      onChange={onChange}
-      style={style}
-      placeholder={placeholder}
-    />
-  ) : (
-    <TextInput
-      style={style}
-      value={value}
-      onChangeText={onChangeText}
-      placeholder={placeholder}
-      placeholderTextColor="#94a3b8"
-    />
-  );
-
-const AppButton = ({ children, style, onClick, disabled }: ButtonProps) =>
-  isWeb ? (
-    <MuiButton
-      fullWidth
-      variant="contained"
-      color="primary"
-      style={style}
-      onClick={onClick}
-      disabled={disabled}
-    >
-      {children}
-    </MuiButton>
-  ) : (
-    <TouchableOpacity style={style} onPress={onClick} disabled={disabled}>
-      {children}
-    </TouchableOpacity>
-  );
+const AppButton = ({ onPress, children, style, disabled }: AppButtonProps) => (
+  <TouchableOpacity style={[style, disabled && styles.disabledButton]} onPress={onPress} disabled={disabled}>
+    {disabled ? <ActivityIndicator color="#ffffff" /> : children}
+  </TouchableOpacity>
+);
 
 export default function Account({ session }: { session: Session }) {
   const [loading, setLoading] = useState(false);
@@ -155,10 +131,8 @@ export default function Account({ session }: { session: Session }) {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Nome Completo</Text>
           <AppTextField
-            style={styles.input}
             value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            onChangeText={(text) => setFullName(text)}
+            onChangeText={setFullName}
             placeholder="Digite seu nome completo"
           />
         </View>
@@ -166,10 +140,8 @@ export default function Account({ session }: { session: Session }) {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Nome de Usuário</Text>
           <AppTextField
-            style={styles.input}
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            onChangeText={(text) => setUsername(text)}
+            onChangeText={setUsername}
             placeholder="Digite seu nome de usuário"
           />
         </View>
@@ -177,19 +149,17 @@ export default function Account({ session }: { session: Session }) {
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Website</Text>
           <AppTextField
-            style={styles.input}
             value={website}
-            onChange={(e) => setWebsite(e.target.value)}
-            onChangeText={(text) => setWebsite(text)}
+            onChangeText={setWebsite}
             placeholder="Digite seu website"
           />
         </View>
 
-        <AppButton style={styles.updateButton} onClick={updateProfile} disabled={loading}>
+        <AppButton style={styles.updateButton} onPress={updateProfile} disabled={loading}>
           <Text style={styles.buttonText}>{loading ? 'Atualizando...' : 'Atualizar Perfil'}</Text>
         </AppButton>
 
-        <AppButton style={styles.backButton} onClick={() => navigation.navigate('KeyHub')}>
+        <AppButton style={styles.backButton} onPress={() => navigation.navigate('KeyHub')}>
           <Text style={styles.buttonText}>Voltar ao Hub</Text>
         </AppButton>
       </View>
@@ -284,5 +254,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.5,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });
