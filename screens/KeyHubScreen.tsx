@@ -20,6 +20,7 @@ type RootStackParamList = {
   Account: undefined;
   AddKey: undefined;
   KeyHistory: undefined;
+  QRCodeScanner: undefined;
 };
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'KeyHub'>;
@@ -58,7 +59,7 @@ export default function KeyHubScreen() {
       setLoading(true);
       const { data, error } = await supabase
         .from('keys')
-        .select('id, name, location, status, user_id')
+        .select('id, name, location, status, user_id, profiles:user_id(full_name)')
         .order('name', { ascending: true });
 
       if (error) throw error;
@@ -69,7 +70,7 @@ export default function KeyHubScreen() {
         location: item.location,
         status: item.status,
         user_id: item.user_id,
-        user: null,
+        user: item.profiles ? { full_name: item.profiles.full_name } : null,
       }));
 
       setKeys(formattedData);
@@ -120,7 +121,7 @@ export default function KeyHubScreen() {
       fetchKeys();
     } catch (error) {
       console.log('Error reserving key:', error);
-      if (!error.message.includes('23514')) {
+      if (error instanceof Error && !error.message.includes('23514')) {
         showToast('error', 'Erro ao reservar a chave.');
       }
     } finally {
@@ -174,7 +175,7 @@ export default function KeyHubScreen() {
       fetchKeys();
     } catch (error) {
       console.log('Error returning key:', error);
-      if (!error.message.includes('Você não pode devolver')) {
+      if (error instanceof Error && !error.message.includes('Você não pode devolver')) {
         showToast('error', 'Erro ao devolver a chave.');
       }
     } finally {
@@ -186,7 +187,8 @@ export default function KeyHubScreen() {
     (key) =>
       key.name.toLowerCase().includes(filter.toLowerCase()) ||
       key.location.toLowerCase().includes(filter.toLowerCase()) ||
-      key.status.toLowerCase().includes(filter.toLowerCase())
+      key.status.toLowerCase().includes(filter.toLowerCase()) ||
+      (key.user?.full_name && key.user.full_name.toLowerCase().includes(filter.toLowerCase()))
   );
 
   const renderKeyItem = ({ item }: { item: Key }) => (
@@ -204,6 +206,9 @@ export default function KeyHubScreen() {
               {item.status}
             </Text>
           </View>
+          {item.status === 'em uso' && item.user && (
+            <Text style={styles.keyDetail}>Em uso por: {item.user.full_name}</Text>
+          )}
         </View>
       </View>
       <View style={styles.actionButtons}>
@@ -288,6 +293,7 @@ export default function KeyHubScreen() {
         >
           <Icon name="history" size={26} color="#fff" />
           <Text style={styles.sidebarButtonText}> Relatório de Movimentação</Text>
+
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.signOutButton}
@@ -302,7 +308,7 @@ export default function KeyHubScreen() {
         <Text style={styles.title}>Hub de Chaves - SENAI</Text>
         <TextInput
           style={styles.filterInput}
-          placeholder="Filtrar por nome, local ou status..."
+          placeholder="Filtrar por nome, local, status ou pessoa..."
           value={filter}
           onChangeText={setFilter}
           placeholderTextColor="#94a3b8"
@@ -311,6 +317,14 @@ export default function KeyHubScreen() {
           <Icon name="refresh" size={26} color="#fff" />
           <Text style={styles.buttonText}> Atualizar</Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.quickAccessButton}
+          onPress={() => navigation.navigate('QRCodeScanner')}
+        >
+          <Icon name="qr-code-scanner" size={26} color="#fff" />
+          <Text style={styles.buttonText}> Reserva Rápida Chave</Text>
+        </TouchableOpacity>
+
         {loading ? (
           <ActivityIndicator size="large" color="#2596be" />
         ) : (
@@ -438,6 +452,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   refreshButton: {
+    flexDirection: 'row',
+    backgroundColor: '#2596be',
+    padding: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+    shadowColor: '#2596be',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  quickAccessButton: {
     flexDirection: 'row',
     backgroundColor: '#2596be',
     padding: 14,

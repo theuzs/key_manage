@@ -1,11 +1,13 @@
 import 'react-native-gesture-handler';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from './lib/supabase';
 import Auth from './components/Auth';
 import Account from './components/Account';
 import KeyHubScreen from './screens/KeyHubScreen';
 import AddKeyScreen from './screens/AddKeyScreen';
 import KeyHistoryScreen from './screens/KeyHistoryScreen';
+import QRCodeScannerScreen from './screens/QRCodeScannerScreen';
+
 import {
   View,
   StyleSheet,
@@ -28,15 +30,19 @@ const isWeb = Platform.OS === 'web';
 const { height } = Dimensions.get('window');
 const Stack = createStackNavigator();
 
+type GradientProps = {
+  children: ReactNode;
+  colors: readonly [string, string, ...string[]];
+  style: any;
+};
+
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const nextFadeAnim = useRef(new Animated.Value(0)).current;
 
-  const images = [
-    require('./assets/background_1.png'),
-  ];
+  const images = [require('./assets/background_1.png')];
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -58,7 +64,7 @@ export default function App() {
     });
 
     return () => {
-      authListener?.subscription?.unsubscribe();
+      authListener?.subscription?.unsubscribe?.();
     };
   }, []);
 
@@ -122,7 +128,7 @@ export default function App() {
     }
   };
 
-  const Gradient = ({ children, colors, style }) => (
+  const Gradient = ({ children, colors, style }: GradientProps) => (
     isWeb ? (
       <View style={{ ...style, backgroundColor: colors[0] }}>
         {children}
@@ -163,6 +169,7 @@ export default function App() {
             </Stack.Screen>
             <Stack.Screen name="AddKey" component={AddKeyScreen} />
             <Stack.Screen name="KeyHistory" component={KeyHistoryScreen} />
+            <Stack.Screen name="QRCodeScanner" component={QRCodeScannerScreen} /> 
           </>
         ) : (
           <Stack.Screen name="Auth" component={AuthScreen} />

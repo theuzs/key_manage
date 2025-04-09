@@ -41,7 +41,7 @@ export default function KeyHistoryScreen() {
       setLoading(true);
       let query = supabase
         .from('key_movements')
-        .select('id, key_id, user_id, action, movement_date, keys:key_id(name)')
+ .select('id, key_id, user_id, action, timestamp, keys:key_id(name), profiles:user_id(full_name)')
         .order('movement_date', { ascending: false });
 
       if (startDate) query = query.gte('movement_date', `${startDate}T00:00:00Z`);
