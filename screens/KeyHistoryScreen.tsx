@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { showToast } from '../utils/toast';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as XLSX from 'xlsx';
+import { useNavigation } from '@react-navigation/native';
 
 type KeyHistory = {
   id: string;
@@ -31,6 +24,7 @@ export default function KeyHistoryScreen() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [userFilter, setUserFilter] = useState('');
+  const navigation = useNavigation();
 
   useEffect(() => {
     fetchHistory();
@@ -41,7 +35,7 @@ export default function KeyHistoryScreen() {
       setLoading(true);
       let query = supabase
         .from('key_movements')
- .select('id, key_id, user_id, action, timestamp, keys:key_id(name), profiles:user_id(full_name)')
+        .select('id, key_id, user_id, action, movement_date, keys:key_id(name), profiles:user_id(full_name)')
         .order('movement_date', { ascending: false });
 
       if (startDate) query = query.gte('movement_date', `${startDate}T00:00:00Z`);
@@ -51,31 +45,16 @@ export default function KeyHistoryScreen() {
 
       if (error) throw error;
 
-      // Buscar metadados dos usuários separadamente
-      const userIds = [...new Set(data.map((item: any) => item.user_id).filter(Boolean))];
-      const usersData: { [key: string]: { full_name: string } } = {};
-      if (userIds.length > 0) {
-        const { data: users, error: userError } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .in('id', userIds);
-        if (userError) throw userError;
-        users.forEach((user: any) => {
-          usersData[user.id] = { full_name: user.full_name };
-        });
-      }
-
       const formattedData: KeyHistory[] = (data || []).map((item: any) => ({
         id: item.id,
         key_id: item.key_id,
         user_id: item.user_id,
         action: item.action,
         movement_date: item.movement_date,
-        key: item.keys ? { name: item.keys.name } : undefined,
-        user: item.user_id && usersData[item.user_id] ? { full_name: usersData[item.user_id].full_name } : null,
+        key: item.keys ? { name: item.keys.name } : { name: 'Desconhecida' },
+        user: item.profiles ? { full_name: item.profiles.full_name } : null,
       }));
 
-      // Aplicar filtro de usuário localmente, se fornecido
       if (userFilter) {
         const filteredData = formattedData.filter(
           (item) => item.user?.full_name?.toLowerCase().includes(userFilter.toLowerCase())
@@ -134,6 +113,9 @@ export default function KeyHistoryScreen() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <Icon name="arrow-back" size={32} color="#2596be" />
+      </TouchableOpacity>
       <Text style={styles.title}>Relatório de Movimentação</Text>
 
       <TextInput
@@ -188,6 +170,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
     padding: 25,
     paddingTop: 80,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 25,
+    left: 25,
+    zIndex: 20,
+    backgroundColor: '#1e293b',
+    padding: 14,
+    borderRadius: 50,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
   },
   title: {
     fontSize: 32,

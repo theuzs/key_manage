@@ -1,4 +1,3 @@
-// screens/QRCodeScannerScreen.tsx
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Alert, Button } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
@@ -20,7 +19,19 @@ export default function QRCodeScannerScreen() {
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     setScanned(true);
 
-    const keyId = data;
+    let keyInfo: { keyId: string; name: string; location: string };
+    try {
+      const parsedData = JSON.parse(data);
+      keyInfo = {
+        keyId: parsedData.keyId,
+        name: parsedData.name,
+        location: parsedData.location,
+      };
+    } catch (error) {
+      Alert.alert('Erro', 'Formato de QR code inválido. Esperado um JSON com keyId, name e location.');
+      return;
+    }
+
     const { data: session } = await supabase.auth.getSession();
     const userId = session?.session?.user?.id;
 
@@ -29,25 +40,58 @@ export default function QRCodeScannerScreen() {
       return;
     }
 
-    const { error } = await supabase
+    const { data: keyData, error: fetchError } = await supabase
       .from('keys')
-      .update({ status: 'em uso', user_id: userId })
-      .eq('id', keyId)
-      .eq('status', 'disponível');
+      .select('status, user_id, profiles:user_id(full_name)')
+      .eq('id', keyInfo.keyId)
+      .single();
 
-    if (error) {
-      Alert.alert('Erro', 'Erro ao reservar chave ou chave já em uso.');
-    } else {
-      await supabase.from('key_movements').insert({
-        key_id: keyId,
-        user_id: userId,
-        action: 'CHECKOUT',
-        movement_date: new Date().toISOString(),
-      });
-      Alert.alert('Sucesso', 'Chave reservada com sucesso!');
+    if (fetchError || !keyData) {
+      Alert.alert('Erro', 'Chave não encontrada ou erro ao verificar status.');
+      return;
     }
 
-    navigation.goBack();
+    if (keyData.status !== 'disponível') {
+      const userName = keyData.profiles?.[0]?.full_name || 'Desconhecido';
+      Alert.alert('Erro', `A chave já está reservada por ${userName}.`);
+      return;
+    }
+
+    Alert.alert(
+      'Confirmar Reserva',
+      `Deseja reservar a chave?\n\nNome: ${keyInfo.name}\nLocalização: ${keyInfo.location}`,
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+          onPress: () => setScanned(false),
+        },
+        {
+          text: 'Reservar',
+          onPress: async () => {
+            const { error: updateError } = await supabase
+              .from('keys')
+              .update({ status: 'em uso', user_id: userId })
+              .eq('id', keyInfo.keyId)
+              .eq('status', 'disponível');
+
+            if (updateError) {
+              Alert.alert('Erro', 'Erro ao reservar a chave. Tente novamente.');
+            } else {
+              await supabase.from('key_movements').insert({
+                key_id: keyInfo.keyId,
+                user_id: userId,
+                action: 'CHECKOUT',
+                movement_date: new Date().toISOString(),
+              });
+              Alert.alert('Sucesso', 'Chave reservada com sucesso!');
+              navigation.goBack();
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
   };
 
   if (hasPermission === null) {
@@ -62,7 +106,7 @@ export default function QRCodeScannerScreen() {
       <CameraView
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         barcodeScannerSettings={{
-          barcodeTypes: ['qr'], // adicione outros tipos se precisar
+          barcodeTypes: ['qr'],
         }}
         style={StyleSheet.absoluteFillObject}
       />
