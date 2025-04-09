@@ -52,7 +52,7 @@ export default function QRCodeScannerScreen() {
     }
 
     if (keyData.status !== 'disponível') {
-      const userName = keyData.profiles?.[0]?.full_name || 'Desconhecido';
+      const userName = keyData.profiles?.full_name || 'Desconhecido';
       Alert.alert('Erro', `A chave já está reservada por ${userName}.`);
       return;
     }
