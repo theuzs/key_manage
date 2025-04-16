@@ -16,8 +16,11 @@ import {
   Animated,
   Platform,
   Dimensions,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation, NavigationProp } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Session } from '@supabase/supabase-js';
 import { ToastContainer } from 'react-toastify';
@@ -34,6 +37,16 @@ type GradientProps = {
   children: ReactNode;
   colors: readonly [string, string, ...string[]];
   style: any;
+};
+
+type RootStackParamList = {
+  Auth: undefined;
+  Register: undefined;
+  KeyHub: undefined;
+  Account: undefined;
+  AddKey: undefined;
+  KeyHistory: undefined;
+  QRCodeScanner: undefined;
 };
 
 export default function App() {
@@ -158,9 +171,134 @@ export default function App() {
     </>
   );
 
+  function RegisterScreen() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [username, setUsername] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [loading, setLoading] = useState(false);
+    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+    async function signUp() {
+      setLoading(true);
+
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('auth.users')
+        .select('email')
+        .eq('email', email)
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        showToast('error', 'Erro ao verificar usuário existente!');
+        setLoading(false);
+        return;
+      }
+
+      if (existingUser) {
+        showToast('warn', 'Este e-mail já está cadastrado. Faça login ou redefina sua senha.');
+        setLoading(false);
+        return;
+      }
+
+      const { data: userData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signUpError) {
+        showToast('error', `Erro: ${signUpError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: userData.user?.id,
+            username,
+            full_name: fullName,
+          },
+        ]);
+
+      if (profileError) {
+        showToast('error', `Erro ao salvar perfil: ${profileError.message}`);
+        setLoading(false);
+        return;
+      }
+
+      showToast('success', 'Cadastro realizado! Verifique seu e-mail para confirmar.');
+      setLoading(false);
+      navigation.navigate('Auth');
+    }
+
+    return (
+      <>
+        <Background />
+        <View style={styles.container}>
+          <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+          <Gradient colors={['#1e3a8a', '#3b82f6']} style={styles.header}>
+            <Text style={styles.headerText}>Registrar Novo Usuário</Text>
+          </Gradient>
+          <View style={styles.content}>
+            <View style={registerStyles.paper}>
+              <TextInput
+                style={registerStyles.textField}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Email"
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={registerStyles.textField}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Senha"
+                secureTextEntry
+              />
+              <TextInput
+                style={registerStyles.textField}
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Nome de usuário"
+                autoCapitalize="none"
+              />
+              <TextInput
+                style={registerStyles.textField}
+                value={fullName}
+                onChangeText={setFullName}
+                placeholder="Nome completo"
+              />
+              <TouchableOpacity
+                style={registerStyles.button}
+                onPress={signUp}
+                disabled={loading || !email || !password || !username || !fullName}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={registerStyles.buttonText}>Registrar</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={registerStyles.linkButton}
+                onPress={() => navigation.navigate('Auth')}
+              >
+                <Text style={registerStyles.linkText}>Voltar para Login</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <Gradient colors={['#3b82f6', '#1e3a8a']} style={styles.footer}>
+            <Text style={styles.footerText}>© 2025 M. Fag - Todos os direitos reservados</Text>
+          </Gradient>
+        </View>
+      </>
+    );
+  }
+
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator initialRouteName="Auth" screenOptions={{ headerShown: false }}>
         {session ? (
           <>
             <Stack.Screen name="KeyHub" component={KeyHubScreen} />
@@ -169,10 +307,14 @@ export default function App() {
             </Stack.Screen>
             <Stack.Screen name="AddKey" component={AddKeyScreen} />
             <Stack.Screen name="KeyHistory" component={KeyHistoryScreen} />
-            <Stack.Screen name="QRCodeScanner" component={QRCodeScannerScreen} /> 
+            <Stack.Screen name="QRCodeScanner" component={QRCodeScannerScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
           </>
         ) : (
-          <Stack.Screen name="Auth" component={AuthScreen} />
+          <>
+            <Stack.Screen name="Auth" component={AuthScreen} />
+            <Stack.Screen name="Register" component={RegisterScreen} />
+          </>
         )}
       </Stack.Navigator>
       {isWeb && (
@@ -259,5 +401,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '500',
     letterSpacing: 0.5,
+  },
+});
+
+const registerStyles = StyleSheet.create({
+  paper: {
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    elevation: 3,
+    marginTop: 50,
+    alignSelf: 'center',
+  },
+  textField: {
+    width: '100%',
+    marginVertical: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+  },
+  button: {
+    width: '100%',
+    padding: 12,
+    backgroundColor: '#1976d2',
+    borderRadius: 4,
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  linkButton: {
+    width: '100%',
+    padding: 12,
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  linkText: {
+    color: '#d32f2f',
+    fontSize: 14,
   },
 });

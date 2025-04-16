@@ -13,10 +13,10 @@ import Toast from 'react-native-toast-message';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { showToast, toastConfig } from '../utils/toast';
+import { useNavigation } from '@react-navigation/native';
 
 const isWeb = Platform.OS === 'web';
 
-// Componentes condicionais como funções
 const AppContainer = ({ children, style }: any) => (
   <View style={style}>{children}</View>
 );
@@ -58,6 +58,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
@@ -79,37 +80,6 @@ export default function Auth() {
       showToast('error', `Erro: ${error.message}`);
     } else {
       showToast('success', 'Login realizado com sucesso!');
-    }
-    setLoading(false);
-  }
-
-  async function signUpWithEmail() {
-    setLoading(true);
-
-    const { data: existingUser, error: fetchError } = await supabase
-      .from('auth.users')
-      .select('email')
-      .eq('email', email)
-      .single();
-
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      showToast('error', 'Erro ao verificar usuário existente!');
-      setLoading(false);
-      return;
-    }
-
-    if (existingUser) {
-      showToast('warn', 'Este e-mail já está cadastrado. Faça login ou redefina sua senha.');
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await supabase.auth.signUp({ email, password });
-
-    if (error) {
-      showToast('error', `Erro: ${error.message}`);
-    } else {
-      showToast('success', 'Verifique seu e-mail para confirmar o cadastro!');
     }
     setLoading(false);
   }
@@ -159,10 +129,10 @@ export default function Auth() {
 
         <AppButton
           style={styles.button}
-          onClick={signUpWithEmail}
-          disabled={loading || !email || !password}
+          onClick={() => navigation.navigate('Register')}
+          disabled={loading}
         >
-          {loading ? <AppLoader size="small" /> : <Text style={styles.buttonText}>Primeiro Acesso</Text>}
+          <Text style={styles.buttonText}>Registrar</Text>
         </AppButton>
 
         <AppButton style={styles.linkButton} onClick={resetPassword} disabled={loading}>
