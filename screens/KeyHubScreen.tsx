@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, FlatList, TouchableOpacity, ActivityIndicator, TextInput, Animated } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { showToast } from '../utils/toast';
+import { Image } from 'react-native'; 
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -311,6 +312,11 @@ export default function KeyHubScreen() {
       </Animated.View>
 
       <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
+        <Image
+          source={require('../assets/senai.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
         <Text style={styles.title}>Hub de Chaves - SENAI</Text>
         <TextInput
           style={styles.filterInput}
@@ -382,6 +388,13 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 10,
   },
+  logo: {
+    width: 180,
+    height: 60,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  
   sidebarTitle: {
     fontSize: 30,
     fontWeight: '700',
