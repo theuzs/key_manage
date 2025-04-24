@@ -13,6 +13,7 @@ import Toast from 'react-native-toast-message';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { showToast, toastConfig } from '../utils/toast';
+import { Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const isWeb = Platform.OS === 'web';
@@ -38,6 +39,7 @@ const AppTextField = ({ style, value, onChangeText, placeholder, secureTextEntry
     onChangeText={onChangeText}
     placeholder={placeholder}
     secureTextEntry={secureTextEntry}
+    autoCapitalize="none"
   />
 );
 
@@ -74,12 +76,17 @@ export default function Auth() {
 
   async function signInWithEmail() {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      showToast('error', `Erro: ${error.message}`);
-    } else {
-      showToast('success', 'Login realizado com sucesso!');
+      if (error) {
+        showToast('error', `Erro: ${error.message}`);
+      } else {
+        showToast('success', 'Login realizado com sucesso!');
+      }
+    } catch (error) {
+      showToast('error', 'Erro inesperado durante o login');
+      console.error('Sign in error:', error);
     }
     setLoading(false);
   }
@@ -91,12 +98,19 @@ export default function Auth() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://your-app-url.com/update-password',
+      });
 
-    if (error) {
-      showToast('error', `Erro: ${error.message}`);
-    } else {
-      showToast('success', 'E-mail de recuperação enviado. Verifique sua caixa de entrada!');
+      if (error) {
+        showToast('error', `Erro: ${error.message}`);
+      } else {
+        showToast('success', 'E-mail de recuperação enviado. Verifique sua caixa de entrada!');
+      }
+    } catch (error) {
+      showToast('error', 'Erro inesperado ao enviar e-mail de recuperação');
+      console.error('Reset password error:', error);
     }
     setLoading(false);
   }
@@ -105,13 +119,18 @@ export default function Auth() {
     <AppContainer style={styles.container}>
       {isWeb && <ToastContainer />}
       <AppPaper style={styles.paper}>
+        
+          <Image
+        source={require('../assets/senaiAzul.png')}
+        style={styles.logo}
+        resizeMode="center"
+      />
         <AppTypography style={styles.title}>Acesso ao Sistema</AppTypography>
 
         <AppTextField
           value={email}
           onChangeText={setEmail}
           placeholder="Email"
-          autoCapitalize="none"
         />
         <AppTextField
           value={password}
@@ -174,6 +193,14 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 4,
   },
+  logo: {
+    width: 340,      // antes era 280
+    height: 100,     // antes era 60
+    alignSelf: 'center',
+
+  },
+  
+  
   button: {
     width: '100%',
     padding: 12,

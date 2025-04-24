@@ -181,9 +181,8 @@ export default function App() {
 
     async function signUp() {
       setLoading(true);
-
+    
       try {
-        // Sign up without email confirmation
         const { data: userData, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -195,49 +194,62 @@ export default function App() {
             }
           }
         });
-
+    
         if (signUpError) {
           if (signUpError.message.includes('User already registered')) {
-            showToast('warn', 'Este e-mail já está cadastrado. Faça login ou redefina sua senha.');
+            // Tenta login com a senha informada
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password
+            });
+    
+            if (signInError) {
+              showToast('warn', 'Este e-mail já está cadastrado. A senha informada está incorreta.');
+            } else {
+              showToast('warn', 'Este e-mail já está cadastrado. Você foi conectado com sucesso.');
+              navigation.navigate('Auth'); // ou a tela desejada após login
+            }
+    
+            setLoading(false);
+            return;
           } else {
             showToast('error', `Erro: ${signUpError.message}`);
-          }
-          setLoading(false);
-          return;
-        }
-
-        if (userData.user) {
-          // Insert profile data
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([
-              {
-                id: userData.user.id,
-                username,
-                full_name: fullName,
-                email: email,
-              },
-            ]);
-
-          if (profileError) {
-            showToast('error', `Erro ao salvar perfil: ${profileError.message}`);
             setLoading(false);
             return;
           }
-
-          showToast('success', 'Cadastro realizado com sucesso! Faça login para continuar.');
-          setLoading(false);
+        }
+    
+        if (userData.user) {
+          // Cria o perfil na tabela 'profiles'
+          // const { error: profileError } = await supabase
+          //   .from('profiles')
+          //   .insert([
+          //     {
+          //       id: userData.user.id,
+          //       username,
+          //       full_name: fullName,
+          //     },
+          //   ]);
+    
+          // if (profileError) {
+          //   showToast('error', `Erro ao salvar perfil: ${profileError.message}`);
+          //   setLoading(false);
+          //   return;
+          // }
+    
+          showToast('success', 'Cadastro realizado com sucesso!');
           navigation.navigate('Auth');
         } else {
           showToast('error', 'Erro ao criar usuário: dados do usuário não retornados');
-          setLoading(false);
         }
       } catch (error) {
         showToast('error', 'Erro inesperado durante o cadastro');
         console.error('Sign up error:', error);
+      } finally {
         setLoading(false);
       }
     }
+    
 
     return (
       <>
@@ -263,30 +275,32 @@ export default function App() {
                 placeholder="Senha"
                 secureTextEntry
               />
-              <TextInput
+              {/* <TextInput
                 style={registerStyles.textField}
                 value={username}
                 onChangeText={setUsername}
                 placeholder="Nome de usuário"
                 autoCapitalize="none"
-              />
+              /> */}
               <TextInput
                 style={registerStyles.textField}
                 value={fullName}
                 onChangeText={setFullName}
                 placeholder="Nome completo"
               />
-              <TouchableOpacity
-                style={registerStyles.button}
-                onPress={signUp}
-                disabled={loading || !email || !password || !username || !fullName}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={registerStyles.buttonText}>Registrar</Text>
-                )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    registerStyles.button,
+                    (!email || !password || !fullName) && { opacity: 0.5 },
+                  ]}
+                  onPress={signUp}
+                  disabled={loading || !email || !password || !fullName}
+                >
+                  <Text style={registerStyles.buttonText}>
+                    {loading ? 'Carregando...' : 'Cadastrar'}
+                  </Text>
+                </TouchableOpacity>
+
               <TouchableOpacity
                 style={registerStyles.linkButton}
                 onPress={() => navigation.navigate('Auth')}
