@@ -182,54 +182,61 @@ export default function App() {
     async function signUp() {
       setLoading(true);
 
-      const { data: existingUser, error: fetchError } = await supabase
-        .from('auth.users')
-        .select('email')
-        .eq('email', email)
-        .single();
+      try {
+        // Sign up without email confirmation
+        const { data: userData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: undefined,
+            data: {
+              username,
+              full_name: fullName
+            }
+          }
+        });
 
-      if (fetchError && fetchError.code !== 'PGRST116') {
-        showToast('error', 'Erro ao verificar usuário existente!');
+        if (signUpError) {
+          if (signUpError.message.includes('User already registered')) {
+            showToast('warn', 'Este e-mail já está cadastrado. Faça login ou redefina sua senha.');
+          } else {
+            showToast('error', `Erro: ${signUpError.message}`);
+          }
+          setLoading(false);
+          return;
+        }
+
+        if (userData.user) {
+          // Insert profile data
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: userData.user.id,
+                username,
+                full_name: fullName,
+                email: email,
+              },
+            ]);
+
+          if (profileError) {
+            showToast('error', `Erro ao salvar perfil: ${profileError.message}`);
+            setLoading(false);
+            return;
+          }
+
+          showToast('success', 'Cadastro realizado com sucesso! Faça login para continuar.');
+          setLoading(false);
+          navigation.navigate('Auth');
+        } else {
+          showToast('error', 'Erro ao criar usuário: dados do usuário não retornados');
+          setLoading(false);
+        }
+      } catch (error) {
+        showToast('error', 'Erro inesperado durante o cadastro');
+        console.error('Sign up error:', error);
         setLoading(false);
-        return;
       }
-
-      if (existingUser) {
-        showToast('warn', 'Este e-mail já está cadastrado. Faça login ou redefina sua senha.');
-        setLoading(false);
-        return;
-      }
-
-      const { data: userData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-
-      if (signUpError) {
-        showToast('error', `Erro: ${signUpError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: userData.user?.id,
-            username,
-            full_name: fullName,
-          },
-        ]);
-
-      if (profileError) {
-        showToast('error', `Erro ao salvar perfil: ${profileError.message}`);
-        setLoading(false);
-        return;
-      }
-
-      showToast('success', 'Cadastro realizado! Verifique seu e-mail para confirmar.');
-      setLoading(false);
-      navigation.navigate('Auth');
     }
 
     return (

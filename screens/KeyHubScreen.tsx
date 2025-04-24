@@ -292,7 +292,7 @@ export default function KeyHubScreen() {
           <Icon name="history" size={26} color="#fff" />
           <Text style={styles.sidebarButtonText}> Relatório de Movimentação</Text>
         </TouchableOpacity>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           style={styles.sidebarButton}
           onPress={() => {
             navigation.navigate('QRCodeScanner');
@@ -301,7 +301,7 @@ export default function KeyHubScreen() {
         >
           <Icon name="qr-code-scanner" size={26} color="#fff" />
           <Text style={styles.sidebarButtonText}> Leitor de QR Code</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <TouchableOpacity
           style={styles.signOutButton}
           onPress={handleSignOut}
@@ -315,9 +315,9 @@ export default function KeyHubScreen() {
         <Image
           source={require('../assets/senai.png')}
           style={styles.logo}
-          resizeMode="contain"
+          resizeMode="center"
         />
-        <Text style={styles.title}>Hub de Chaves - SENAI</Text>
+        {/* <Text style={styles.title}>Hub de Chaves - SENAI</Text> */}
         <TextInput
           style={styles.filterInput}
           placeholder="Filtrar por nome, local, status ou pessoa..."
@@ -389,10 +389,12 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   logo: {
-    width: 180,
+    width: 280,
     height: 60,
     alignSelf: 'center',
-    marginBottom: 20,
+    marginBottom: 60,
+    marginTop: -65,
+    marginLeft: 65,
   },
   
   sidebarTitle: {
@@ -464,6 +466,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334155',
     marginBottom: 20,
+    marginTop: -30,
     fontSize: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },

@@ -111,6 +111,7 @@ export default function Auth() {
           value={email}
           onChangeText={setEmail}
           placeholder="Email"
+          autoCapitalize="none"
         />
         <AppTextField
           value={password}
