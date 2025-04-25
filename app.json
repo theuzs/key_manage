@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "expo-user-management",
+    "name": "senai-key",
     "slug": "expo-user-management",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon_key.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/icon_key.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,13 +17,16 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/icon_key.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.expousermanagement"
+      "package": "com.anonymous.expousermanagement",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
     },
     "web": {
-      "favicon": "./assets/favicon.png",
+      "favicon": "./assets/icon_key.png",
       "build": {
         "babel": {
           "include": [
@@ -37,12 +40,14 @@
         "web"
       ],
       "web.splashScreen": {
-        "image": "./assets/splash-icon.png",
+        "image": "./assets/icon_key.png",
         "backgroundColor": "#ffffff"
       }
     },
-    "plugins": [
-      "expo-barcode-scanner"
-    ]
+    "extra": {
+      "eas": {
+        "projectId": "b074bf98-b564-42fb-9d4d-6c98817c7b7b"
+      }
+    }
   }
 }
