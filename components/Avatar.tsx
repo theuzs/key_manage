@@ -1,166 +1,158 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
-import {
-  StyleSheet,
-  View,
-  Image,
-  Text,
-  TouchableOpacity,
-  Platform,
-  ActivityIndicator,
-} from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { showToast } from '../utils/toast';
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+import { StyleSheet, View, Alert, Image, Pressable, ActivityIndicator } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
+import { Feather } from '@expo/vector-icons' // Adicionado aqui
 
 interface Props {
-  size?: number;
-  url: string | null;
-  onUpload: (filePath: string) => void;
-  userId?: string;
+  size: number
+  url: string | null
+  onUpload: (filePath: string) => void
 }
 
-export default function Avatar({ url, size = 150, onUpload, userId }: Props) {
-  const [uploading, setUploading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const avatarSize = { height: size, width: size };
+export default function Avatar({ url, size = 150, onUpload }: Props) {
+  const [uploading, setUploading] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const avatarSize = { height: size, width: size, borderRadius: size / 2 }
 
   useEffect(() => {
-    if (url) downloadImage(url);
-  }, [url]);
+    if (url) {
+      downloadImage(url)
+    }
+  }, [url])
 
   async function downloadImage(path: string) {
     try {
-      const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-      if (!data?.publicUrl) throw new Error('URL pública não disponível');
-      setAvatarUrl(data.publicUrl);
+      const { data, error } = await supabase.storage.from('avatars').download(path)
+      if (error) throw error
+
+      const base64 = await blobToBase64(data)
+      setAvatarUrl(base64)
     } catch (error) {
-      console.log('Erro ao baixar imagem:', error);
-      showToast('error', 'Erro ao carregar imagem do avatar.');
+      console.error('Error downloading image:', error)
     }
+  }
+
+  async function blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
   }
 
   async function uploadAvatar() {
     try {
-      setUploading(true);
-
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        showToast('error', 'Permissão para acessar a galeria negada.');
-        return;
-      }
+      setUploading(true)
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: false,
         allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
+        quality: 1,
+        exif: false,
+      })
 
       if (result.canceled || !result.assets || result.assets.length === 0) {
-        console.log('Usuário cancelou o seletor de imagem.');
-        return;
+        console.log('User cancelled image picker.')
+        return
       }
 
-      const image = result.assets[0];
-      if (!image.uri) throw new Error('Imagem sem URI.');
+      const image = result.assets[0]
+      if (!image.uri) throw new Error('No image uri!')
 
-      const fileExt = image.uri.split('.').pop()?.toLowerCase() || 'jpeg';
-      const fileName = `${Date.now()}.${fileExt}`;
+      const response = await fetch(image.uri)
+      const arraybuffer = await response.arrayBuffer()
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const currentUserId = userId || sessionData?.session?.user?.id;
-      if (!currentUserId) throw new Error('Usuário não autenticado');
+      const fileExt = image.uri.split('.').pop()?.toLowerCase() ?? 'jpeg'
+      const path = `${Date.now()}.${fileExt}`
 
-      const filePath = `${currentUserId}/${fileName}`;
-      const response = await fetch(image.uri);
-      const blob = await response.blob();
-
-      const { error: uploadError } = await supabase.storage
+      const { data, error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, blob, {
+        .upload(path, arraybuffer, {
           contentType: image.mimeType ?? 'image/jpeg',
           upsert: true,
-        });
+        })
 
-      if (uploadError) throw uploadError;
+      if (uploadError) throw uploadError
 
-      const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      setAvatarUrl(publicUrlData.publicUrl);
-      onUpload(filePath);
-      showToast('success', 'Avatar carregado com sucesso!');
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) throw new Error('Usuário não autenticado.')
+      
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: path })
+        .eq('id', user.id)
+      
+      if (updateError) throw updateError
+
+      onUpload(path)
     } catch (error) {
-      console.log('Erro no upload:', error);
-      showToast('error', error instanceof Error ? error.message : 'Erro ao carregar avatar.');
+      if (error instanceof Error) {
+        Alert.alert('Upload failed', error.message)
+      } else {
+        throw error
+      }
     } finally {
-      setUploading(false);
+      setUploading(false)
     }
   }
 
   return (
     <View style={styles.container}>
-      {avatarUrl ? (
-        <Image
-          source={{ uri: avatarUrl }}
-          accessibilityLabel="Avatar"
-          style={[avatarSize, styles.avatar]}
-        />
-      ) : (
-        <View style={[avatarSize, styles.avatar, styles.noImage]}>
-          <Text style={styles.noImageText}>Sem Avatar</Text>
+      <Pressable onPress={uploadAvatar} disabled={uploading}>
+        <View>
+          {avatarUrl ? (
+            <Image
+              source={{ uri: avatarUrl }}
+              accessibilityLabel="Avatar"
+              style={[avatarSize, styles.avatar]}
+            />
+          ) : (
+            <View style={[avatarSize, styles.placeholder]}>
+              {uploading ? <ActivityIndicator color="#fff" /> : null}
+            </View>
+          )}
+
+          {/* Ícone do lápis */}
+          <View style={styles.iconContainer}>
+            <Feather name="edit-2" size={20} color="#fff" />
+          </View>
         </View>
-      )}
-      <TouchableOpacity
-        style={[styles.uploadButton, uploading && styles.disabledButton]}
-        onPress={uploadAvatar}
-        disabled={uploading}
-      >
-        {uploading ? (
-          <ActivityIndicator size="small" color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Carregar Avatar</Text>
-        )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'center',
+    marginVertical: 20,
   },
   avatar: {
-    borderRadius: 75,
+    borderRadius: 9999,
     borderWidth: 2,
-    borderColor: '#2596be',
-    overflow: 'hidden',
+    borderColor: '#ccc',
+    objectFit: 'cover',
+  },
+  placeholder: {
+    backgroundColor: '#555',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 9999,
+    borderWidth: 2,
+    borderColor: '#ccc',
   },
-  noImage: {
-    backgroundColor: '#1e293b',
+  iconContainer: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: '#000',
+    borderRadius: 15,
+    padding: 4,
+    opacity: 0.8,
   },
-  noImageText: {
-    color: '#94a3b8',
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  uploadButton: {
-    marginTop: 15,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    backgroundColor: '#2596be',
-    borderRadius: 10,
-    alignItems: 'center',
-    elevation: 4,
-  },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-});
+})

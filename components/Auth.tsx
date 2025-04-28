@@ -83,6 +83,7 @@ export default function Auth() {
         showToast('error', `Erro: ${error.message}`);
       } else {
         showToast('success', 'Login realizado com sucesso!');
+        navigation.navigate('KeyHub');
       }
     } catch (error) {
       showToast('error', 'Erro inesperado durante o login');
