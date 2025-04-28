@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "senai-key",
+    "name": "Senai key",
     "slug": "expo-user-management",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -22,8 +22,11 @@
       },
       "package": "com.anonymous.expousermanagement",
       "permissions": [
-        "android.permission.CAMERA"
-      ]
+        "android.permission.CAMERA",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/icon_key.png",
@@ -34,12 +37,7 @@
           ]
         }
       },
-      "platforms": [
-        "ios",
-        "android",
-        "web"
-      ],
-      "web.splashScreen": {
+      "splashScreen": {
         "image": "./assets/icon_key.png",
         "backgroundColor": "#ffffff"
       }
@@ -48,6 +46,7 @@
       "eas": {
         "projectId": "b074bf98-b564-42fb-9d4d-6c98817c7b7b"
       }
-    }
+    },
+    "jsEngine": "hermes"
   }
 }

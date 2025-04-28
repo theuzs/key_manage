@@ -23,11 +23,11 @@ import {
 import { NavigationContainer, useNavigation, NavigationProp } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Session } from '@supabase/supabase-js';
-import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
 import { showToast, toastConfig } from './utils/toast';
+import Ionicons from 'react-native-vector-icons/MaterialIcons';
 
 const isWeb = Platform.OS === 'web';
 const { height } = Dimensions.get('window');
@@ -171,191 +171,170 @@ export default function App() {
     </>
   );
 
-  function RegisterScreen() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [username, setUsername] = useState('');
-    const [fullName, setFullName] = useState('');
-    const [loading, setLoading] = useState(false);
-    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
 
-    async function signUp() {
-      setLoading(true);
-    
-      try {
-        const { data: userData, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: undefined,
-            data: {
-              username,
-              full_name: fullName
-            }
-          }
-        });
-    
-        if (signUpError) {
-          if (signUpError.message.includes('User already registered')) {
-            // Tenta login com a senha informada
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-              email,
-              password
-            });
-    
-            if (signInError) {
-              showToast('warn', 'Este e-mail já está cadastrado. A senha informada está incorreta.');
-            } else {
-              showToast('warn', 'Este e-mail já está cadastrado. Você foi conectado com sucesso.');
-              navigation.navigate('Auth'); // ou a tela desejada após login
-            }
-    
-            setLoading(false);
-            return;
-          } else {
-            showToast('error', `Erro: ${signUpError.message}`);
-            setLoading(false);
-            return;
-          }
-        }
-    
-        if (userData.user) {
-          // Cria o perfil na tabela 'profiles'
-          // const { error: profileError } = await supabase
-          //   .from('profiles')
-          //   .insert([
-          //     {
-          //       id: userData.user.id,
-          //       username,
-          //       full_name: fullName,
-          //     },
-          //   ]);
-    
-          // if (profileError) {
-          //   showToast('error', `Erro ao salvar perfil: ${profileError.message}`);
-          //   setLoading(false);
-          //   return;
-          // }
-    
-          showToast('success', 'Cadastro realizado com sucesso!');
-          navigation.navigate('Auth');
-        } else {
-          showToast('error', 'Erro ao criar usuário: dados do usuário não retornados');
-        }
-      } catch (error) {
-        showToast('error', 'Erro inesperado durante o cadastro');
-        console.error('Sign up error:', error);
-      } finally {
-        setLoading(false);
-      }
+
+function RegisterScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState(''); // NOVO
+  const [username, setUsername] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+
+  async function signUp() {
+    if (password !== confirmPassword) {
+      showToast('warn', 'As senhas não coincidem.');
+      return;
     }
-    
 
-    return (
-      <>
-        <Background />
-        <View style={styles.container}>
-          <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-          <Gradient colors={['#1e3a8a', '#3b82f6']} style={styles.header}>
-            <Text style={styles.headerText}>Registrar Novo Usuário</Text>
-          </Gradient>
-          <View style={styles.content}>
-            <View style={registerStyles.paper}>
-              <TextInput
-                style={registerStyles.textField}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="Email"
-                autoCapitalize="none"
-              />
-              <TextInput
-                style={registerStyles.textField}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="Senha"
-                secureTextEntry
-              />
-              {/* <TextInput
-                style={registerStyles.textField}
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Nome de usuário"
-                autoCapitalize="none"
-              /> */}
-              <TextInput
-                style={registerStyles.textField}
-                value={fullName}
-                onChangeText={setFullName}
-                placeholder="Nome completo"
-              />
-                <TouchableOpacity
-                  style={[
-                    registerStyles.button,
-                    (!email || !password || !fullName) && { opacity: 0.5 },
-                  ]}
-                  onPress={signUp}
-                  disabled={loading || !email || !password || !fullName}
-                >
-                  <Text style={registerStyles.buttonText}>
-                    {loading ? 'Carregando...' : 'Cadastrar'}
-                  </Text>
-                </TouchableOpacity>
+    setLoading(true);
 
-              <TouchableOpacity
-                style={registerStyles.linkButton}
-                onPress={() => navigation.navigate('Auth')}
-              >
-                <Text style={registerStyles.linkText}>Voltar para Login</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-          <Gradient colors={['#3b82f6', '#1e3a8a']} style={styles.footer}>
-            <Text style={styles.footerText}>© 2025 M. Fag - Todos os direitos reservados</Text>
-          </Gradient>
-        </View>
-      </>
-    );
+    try {
+      const { data: userData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: undefined,
+          data: {
+            username,
+            full_name: fullName
+          }
+        }
+      });
+
+      if (signUpError) {
+        if (signUpError.message.includes('User already registered')) {
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+
+          if (signInError) {
+            showToast('warn', 'Este e-mail já está cadastrado. A senha informada está incorreta.');
+          } else {
+            showToast('warn', 'Este e-mail já está cadastrado. Você foi conectado com sucesso.');
+            navigation.navigate('KeyHub');
+          }
+
+          setLoading(false);
+          return;
+        } else {
+          showToast('error', `Erro: ${signUpError.message}`);
+          setLoading(false);
+          return;
+        }
+      }
+
+      if (userData.user) {
+        showToast('success', 'Cadastro realizado com sucesso!');
+        navigation.navigate('KeyHub');
+      } else {
+        showToast('error', 'Erro ao criar usuário: dados do usuário não retornados');
+      }
+    } catch (error) {
+      showToast('error', 'Erro inesperado durante o cadastro');
+      console.error('Sign up error:', error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Auth" screenOptions={{ headerShown: false }}>
-        {session ? (
-          <>
-            <Stack.Screen name="KeyHub" component={KeyHubScreen} />
-            <Stack.Screen name="Account">
-              {(props) => <Account {...props} session={session} />}
-            </Stack.Screen>
-            <Stack.Screen name="AddKey" component={AddKeyScreen} />
-            <Stack.Screen name="KeyHistory" component={KeyHistoryScreen} />
-            <Stack.Screen name="QRCodeScanner" component={QRCodeScannerScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </>
-        ) : (
-          <>
-            <Stack.Screen name="Auth" component={AuthScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-      {isWeb && (
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="dark"
-          style={{ zIndex: 1000 }}
-        />
-      )}
-      {!isWeb && <Toast config={toastConfig} />}
-    </NavigationContainer>
+    <>
+      <Background />
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <Gradient colors={['#1e3a8a', '#3b82f6']} style={styles.header}>
+          <Text style={styles.headerText}>Registrar Novo Usuário</Text>
+        </Gradient>
+        <View style={styles.content}>
+          <View style={registerStyles.paper}>
+            <TextInput
+              style={registerStyles.textField}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email"
+              autoCapitalize="none"
+            />
+            <TextInput
+              style={registerStyles.textField}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Senha"
+              secureTextEntry
+            />
+            <TextInput
+              style={registerStyles.textField}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Confirmar Senha"
+              secureTextEntry
+            />
+            {/* 
+            Se quiser voltar a usar username futuramente:
+            <TextInput
+              style={registerStyles.textField}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="Nome de usuário"
+              autoCapitalize="none"
+            /> 
+            */}
+            <TextInput
+              style={registerStyles.textField}
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder="Nome completo"
+            />
+            <TouchableOpacity
+              style={[
+                registerStyles.button,
+                (!email || !password || !confirmPassword || !fullName) && { opacity: 0.5 },
+              ]}
+              onPress={signUp}
+              disabled={loading || !email || !password || !confirmPassword || !fullName}
+            >
+              <Text style={registerStyles.buttonText}>
+                {loading ? 'Carregando...' : 'Cadastrar'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={registerStyles.linkButton}
+              onPress={() => navigation.navigate('Auth')}
+            >
+              <Text style={registerStyles.linkText}>Voltar para Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+        <Gradient colors={['#3b82f6', '#1e3a8a']} style={styles.footer}>
+          <Text style={styles.footerText}>© 2025 M. Fag - Todos os direitos reservados</Text>
+        </Gradient>
+      </View>
+    </>
   );
+}
+
+
+return (
+  <NavigationContainer>
+    <Stack.Navigator initialRouteName={session ? "KeyHub" : "Auth"} screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="KeyHub" component={KeyHubScreen} />
+      <Stack.Screen name="Account">
+  {(props) => <Account {...props} session={session!} />}
+</Stack.Screen>
+      <Stack.Screen name="AddKey" component={AddKeyScreen} />
+      <Stack.Screen name="KeyHistory" component={KeyHistoryScreen} />
+      <Stack.Screen name="QRCodeScanner" component={QRCodeScannerScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="Auth" component={AuthScreen} />
+    </Stack.Navigator>
+    <Toast config={toastConfig} />
+  </NavigationContainer>
+);
+
+
 }
 
 const styles = StyleSheet.create({

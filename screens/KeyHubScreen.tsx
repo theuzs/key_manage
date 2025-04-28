@@ -10,6 +10,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 type RootStackParamList = {
   KeyHub: undefined;
   Account: undefined;
+  Auth: undefined;
   AddKey: undefined;
   KeyHistory: undefined;
   QRCodeScanner: undefined;
@@ -248,11 +249,16 @@ export default function KeyHubScreen() {
       await supabase.auth.signOut();
       showToast('success', 'Logout realizado com sucesso!');
       toggleMenu();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Auth' }],
+      });
     } catch (error) {
       console.log('Error signing out:', error);
       showToast('error', 'Erro ao fazer logout.');
     }
   };
+  
 
   return (
     <View style={styles.container}>
