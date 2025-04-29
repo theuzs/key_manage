@@ -99,8 +99,7 @@ export default function Account({ session }: { session: Session }) {
       setLoading(true);
       const updates = {
         id: session.user.id,
-        full_name: fullName,
-        username: username,
+        full_name: fullName, 
         website: website,
         avatar_url: avatarUrl,
         updated_at: new Date().toISOString(),
