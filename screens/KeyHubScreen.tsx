@@ -373,6 +373,8 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 50,
     shadowColor: '#000',
+    marginTop: 25,
+    marginBottom: 60,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
@@ -399,7 +401,7 @@ const styles = StyleSheet.create({
     height: 60,
     alignSelf: 'center',
     marginBottom: 60,
-    marginTop: -65,
+    marginTop: -40,
     marginLeft: 65,
   },
   
