@@ -102,6 +102,10 @@ export default function AddKeyScreen() {
       const keyId = data.id;
       await generatePDF(keyId);
       showToast('success', 'Chave adicionada com sucesso!');
+      setName('');
+      setLocation('');
+      setStatus('disponível');
+
     } catch (error) {
       console.log('Error adding key:', error);
       showToast('error', 'Erro ao adicionar a chave.');
@@ -185,7 +189,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#e2e8f0',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 25,
+    marginTop: 30,
     textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 6,
