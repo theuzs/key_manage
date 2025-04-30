@@ -7,7 +7,9 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Easing } from 'react-native';
-import { TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { Pressable } from 'react-native';
+
 
 
 
@@ -348,47 +350,60 @@ export default function KeyHubScreen() {
         </TouchableOpacity>
       </Animated.View>
 
-      <TouchableWithoutFeedback onPress={() => menuVisible && toggleMenu()}>
-  <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
+      {menuVisible && (
+  <>
+    <BlurView
+      intensity={5000}
+      tint="dark"
+      style={StyleSheet.absoluteFill}
+    />
+    <Pressable
+      onPress={toggleMenu}
+      style={StyleSheet.absoluteFillObject}
+      pointerEvents="auto"
+    />
+  </>
+)}
 
-        <Image
-          source={require('../assets/senai.png')}
-          style={styles.logo}
-          resizeMode="center"
-        />
-        {/* <Text style={styles.title}>Hub de Chaves - SENAI</Text> */}
-        <TextInput
-          style={styles.filterInput}
-          placeholder="Filtrar por nome, local, status ou pessoa..."
-          value={filter}
-          onChangeText={setFilter}
-          placeholderTextColor="#94a3b8"
-        />
-        <TouchableOpacity style={styles.refreshButton} onPress={fetchKeys} disabled={loading}>
-          <Icon name="refresh" size={26} color="#fff" />
-          <Text style={styles.buttonText}> Atualizar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.quickAccessButton}
-          onPress={() => navigation.navigate('QRCodeScanner')}
-        >
-          <Icon name="qr-code-scanner" size={26} color="#fff" />
-          <Text style={styles.buttonText}> Reserva Rápida Chave</Text>
-        </TouchableOpacity>
+<Animated.View style={[styles.mainContent, { opacity: fadeAnim }]} pointerEvents={menuVisible ? 'none' : 'auto'}>
+  <Image
+    source={require('../assets/senai.png')}
+    style={styles.logo}
+    resizeMode="center"
+  />
+  {/* <Text style={styles.title}>Hub de Chaves - SENAI</Text> */}
+  <TextInput
+    style={styles.filterInput}
+    placeholder="Filtrar por nome, local, status ou pessoa..."
+    value={filter}
+    onChangeText={setFilter}
+    placeholderTextColor="#94a3b8"
+  />
+  <TouchableOpacity style={styles.refreshButton} onPress={fetchKeys} disabled={loading}>
+    <Icon name="refresh" size={26} color="#fff" />
+    <Text style={styles.buttonText}> Atualizar</Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    style={styles.quickAccessButton}
+    onPress={() => navigation.navigate('QRCodeScanner')}
+  >
+    <Icon name="qr-code-scanner" size={26} color="#fff" />
+    <Text style={styles.buttonText}> Reserva Rápida Chave</Text>
+  </TouchableOpacity>
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#2596be" />
-        ) : (
-          <FlatList
-            data={filteredKeys}
-            renderItem={renderKeyItem}
-            keyExtractor={(item) => item.id}
-            ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma chave cadastrada.</Text>}
-            contentContainerStyle={styles.listContent}
-          />
-        )}
-        </Animated.View>
-</TouchableWithoutFeedback>
+  {loading ? (
+    <ActivityIndicator size="large" color="#2596be" />
+  ) : (
+    <FlatList
+      data={filteredKeys}
+      renderItem={renderKeyItem}
+      keyExtractor={(item) => item.id}
+      ListEmptyComponent={<Text style={styles.emptyText}>Nenhuma chave cadastrada.</Text>}
+      contentContainerStyle={styles.listContent}
+    />
+  )}
+</Animated.View>
+
 
     </View>
   );
