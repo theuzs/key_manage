@@ -6,6 +6,10 @@ import { Image } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { Easing } from 'react-native';
+import { TouchableWithoutFeedback, Keyboard } from 'react-native';
+
+
 
 type RootStackParamList = {
   KeyHub: undefined;
@@ -35,6 +39,8 @@ export default function KeyHubScreen() {
   const navigation = useNavigation<NavigationProp>();
   const slideAnim = React.useRef(new Animated.Value(-300)).current;
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const rotateAnim = React.useRef(new Animated.Value(0)).current;
+
 
   useEffect(() => {
     fetchKeys();
@@ -235,14 +241,25 @@ export default function KeyHubScreen() {
   );
 
   const toggleMenu = () => {
-    const toValue = menuVisible ? -300 : 0;
-    Animated.spring(slideAnim, {
-      toValue,
-      tension: 80,
-      friction: 10,
-      useNativeDriver: true,
-    }).start(() => setMenuVisible(!menuVisible));
+    const toSlide = menuVisible ? -300 : 0;
+    const toRotate = menuVisible ? 0 : 1;
+  
+    Animated.parallel([
+      Animated.timing(slideAnim, {
+        toValue: toSlide,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.timing(rotateAnim, {
+        toValue: toRotate,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+    ]).start(() => setMenuVisible(!menuVisible));
   };
+  
 
   const handleSignOut = async () => {
     try {
@@ -262,9 +279,23 @@ export default function KeyHubScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
-        <Icon name={menuVisible ? 'close' : 'menu'} size={32} color="#2596be" />
-      </TouchableOpacity>
+<TouchableOpacity style={styles.menuButton} onPress={toggleMenu}>
+  <Animated.View
+    style={{
+      transform: [
+        {
+          rotate: rotateAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: ['0deg', '90deg'], // Gira 90 graus
+          }),
+        },
+      ],
+    }}
+  >
+    <Icon name={menuVisible ? 'close' : 'menu'} size={32} color="#2596be" />
+  </Animated.View>
+</TouchableOpacity>
+
 
       <Animated.View style={[styles.sidebar, { transform: [{ translateX: slideAnim }] }]}>
         <Text style={styles.sidebarTitle}>Menu</Text>
@@ -317,7 +348,9 @@ export default function KeyHubScreen() {
         </TouchableOpacity>
       </Animated.View>
 
-      <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
+      <TouchableWithoutFeedback onPress={() => menuVisible && toggleMenu()}>
+  <Animated.View style={[styles.mainContent, { opacity: fadeAnim }]}>
+
         <Image
           source={require('../assets/senai.png')}
           style={styles.logo}
@@ -354,7 +387,9 @@ export default function KeyHubScreen() {
             contentContainerStyle={styles.listContent}
           />
         )}
-      </Animated.View>
+        </Animated.View>
+</TouchableWithoutFeedback>
+
     </View>
   );
 }
