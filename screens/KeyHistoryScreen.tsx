@@ -32,6 +32,9 @@ export default function KeyHistoryScreen() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [userFilter, setUserFilter] = useState('');
+  const [showStartPicker, setShowStartPicker] = useState(false);
+const [showEndPicker, setShowEndPicker] = useState(false);
+
 
   useEffect(() => {
     fetchHistory();
@@ -137,20 +140,40 @@ export default function KeyHistoryScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Relatório de Movimentação</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Data inicial (YYYY-MM-DD)"
-        value={startDate}
-        onChangeText={setStartDate}
-        placeholderTextColor="#94a3b8"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Data final (YYYY-MM-DD)"
-        value={endDate}
-        onChangeText={setEndDate}
-        placeholderTextColor="#94a3b8"
-      />
+      <TouchableOpacity onPress={() => setShowStartPicker(true)} style={styles.input}>
+  <Text style={{ color: startDate ? '#fff' : '#94a3b8' }}>
+    {startDate ? new Date(startDate).toLocaleDateString() : 'Data inicial'}
+  </Text>
+</TouchableOpacity>
+{showStartPicker && (
+  <DateTimePicker
+    value={startDate ? new Date(startDate) : new Date()}
+    mode="date"
+    display="default"
+    onChange={(event, selectedDate) => {
+      setShowStartPicker(false);
+      if (selectedDate) setStartDate(selectedDate.toISOString().split('T')[0]);
+    }}
+  />
+)}
+
+<TouchableOpacity onPress={() => setShowEndPicker(true)} style={styles.input}>
+  <Text style={{ color: endDate ? '#fff' : '#94a3b8' }}>
+    {endDate ? new Date(endDate).toLocaleDateString() : 'Data final'}
+  </Text>
+</TouchableOpacity>
+{showEndPicker && (
+  <DateTimePicker
+    value={endDate ? new Date(endDate) : new Date()}
+    mode="date"
+    display="default"
+    onChange={(event, selectedDate) => {
+      setShowEndPicker(false);
+      if (selectedDate) setEndDate(selectedDate.toISOString().split('T')[0]);
+    }}
+  />
+)}
+
       <TextInput
         style={styles.input}
         placeholder="Nome do usuário (ou vazio para todos)"
