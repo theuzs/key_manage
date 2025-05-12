@@ -1,13 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Alert, Button } from 'react-native';
 import { CameraView, Camera } from 'expo-camera';
 import { supabase } from '../lib/supabase';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+
+interface Profile {
+  full_name: string;
+}
+
+interface KeyData {
+  status: string;
+  user_id: string;
+  profiles: Profile[] | null;
+}
 
 export default function QRCodeScannerScreen() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState(false);
   const navigation = useNavigation();
+  const cameraRef = useRef<CameraView | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -15,6 +26,25 @@ export default function QRCodeScannerScreen() {
       setHasPermission(status === 'granted');
     })();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (cameraRef.current) {
+        cameraRef.current.pausePreview();
+      }
+    };
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setScanned(false);
+      return () => {
+        if (cameraRef.current) {
+          cameraRef.current.pausePreview();
+        }
+      };
+    }, [])
+  );
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
     setScanned(true);
@@ -44,7 +74,7 @@ export default function QRCodeScannerScreen() {
       .from('keys')
       .select('status, user_id, profiles:user_id(full_name)')
       .eq('id', keyInfo.keyId)
-      .single();
+      .single() as unknown as { data: KeyData; error: any };
 
     if (fetchError || !keyData) {
       Alert.alert('Erro', 'Chave não encontrada ou erro ao verificar status.');
@@ -52,7 +82,7 @@ export default function QRCodeScannerScreen() {
     }
 
     if (keyData.status !== 'disponível') {
-      const userName = keyData.profiles?.full_name || 'Desconhecido';
+      const userName = keyData.profiles && keyData.profiles.length > 0 ? keyData.profiles[0]?.full_name || 'Desconhecido' : 'Desconhecido';
       Alert.alert('Erro', `A chave já está reservada por ${userName}.`);
       return;
     }
@@ -104,6 +134,7 @@ export default function QRCodeScannerScreen() {
   return (
     <View style={styles.container}>
       <CameraView
+        ref={cameraRef}
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         barcodeScannerSettings={{
           barcodeTypes: ['qr'],
