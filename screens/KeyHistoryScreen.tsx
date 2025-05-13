@@ -32,9 +32,9 @@ export default function KeyHistoryScreen() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [userFilter, setUserFilter] = useState('');
+  const [keyFilter, setKeyFilter] = useState(''); // Novo estado para filtro de chave
   const [showStartPicker, setShowStartPicker] = useState(false);
-const [showEndPicker, setShowEndPicker] = useState(false);
-
+  const [showEndPicker, setShowEndPicker] = useState(false);
 
   useEffect(() => {
     fetchHistory();
@@ -79,15 +79,19 @@ const [showEndPicker, setShowEndPicker] = useState(false);
         user: item.user_id && usersData[item.user_id] ? { full_name: usersData[item.user_id].full_name } : null,
       }));
 
-      // Aplicar filtro de usuário localmente, se fornecido
+      // Aplicar filtros de usuário e chave localmente, se fornecidos
+      let filteredData = formattedData;
       if (userFilter) {
-        const filteredData = formattedData.filter(
+        filteredData = filteredData.filter(
           (item) => item.user?.full_name?.toLowerCase().includes(userFilter.toLowerCase())
         );
-        setHistory(filteredData);
-      } else {
-        setHistory(formattedData);
       }
+      if (keyFilter) {
+        filteredData = filteredData.filter(
+          (item) => item.key?.name?.toLowerCase().includes(keyFilter.toLowerCase())
+        );
+      }
+      setHistory(filteredData);
     } catch (error) {
       console.log('Error fetching history:', error);
       showToast('error', 'Erro ao carregar o histórico.');
@@ -141,44 +145,52 @@ const [showEndPicker, setShowEndPicker] = useState(false);
       <Text style={styles.title}>Relatório de Movimentação</Text>
 
       <TouchableOpacity onPress={() => setShowStartPicker(true)} style={styles.input}>
-  <Text style={{ color: startDate ? '#fff' : '#94a3b8' }}>
-    {startDate ? new Date(startDate).toLocaleDateString() : 'Data inicial'}
-  </Text>
-</TouchableOpacity>
-{showStartPicker && (
-  <DateTimePicker
-    value={startDate ? new Date(startDate) : new Date()}
-    mode="date"
-    display="default"
-    onChange={(event, selectedDate) => {
-      setShowStartPicker(false);
-      if (selectedDate) setStartDate(selectedDate.toISOString().split('T')[0]);
-    }}
-  />
-)}
+        <Text style={{ color: startDate ? '#fff' : '#94a3b8' }}>
+          {startDate ? new Date(startDate).toLocaleDateString() : 'Data inicial'}
+        </Text>
+      </TouchableOpacity>
+      {showStartPicker && (
+        <DateTimePicker
+          value={startDate ? new Date(startDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowStartPicker(false);
+            if (selectedDate) setStartDate(selectedDate.toISOString().split('T')[0]);
+          }}
+        />
+      )}
 
-<TouchableOpacity onPress={() => setShowEndPicker(true)} style={styles.input}>
-  <Text style={{ color: endDate ? '#fff' : '#94a3b8' }}>
-    {endDate ? new Date(endDate).toLocaleDateString() : 'Data final'}
-  </Text>
-</TouchableOpacity>
-{showEndPicker && (
-  <DateTimePicker
-    value={endDate ? new Date(endDate) : new Date()}
-    mode="date"
-    display="default"
-    onChange={(event, selectedDate) => {
-      setShowEndPicker(false);
-      if (selectedDate) setEndDate(selectedDate.toISOString().split('T')[0]);
-    }}
-  />
-)}
+      <TouchableOpacity onPress={() => setShowEndPicker(true)} style={styles.input}>
+        <Text style={{ color: endDate ? '#fff' : '#94a3b8' }}>
+          {endDate ? new Date(endDate).toLocaleDateString() : 'Data final'}
+        </Text>
+      </TouchableOpacity>
+      {showEndPicker && (
+        <DateTimePicker
+          value={endDate ? new Date(endDate) : new Date()}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowEndPicker(false);
+            if (selectedDate) setEndDate(selectedDate.toISOString().split('T')[0]);
+          }}
+        />
+      )}
 
       <TextInput
         style={styles.input}
         placeholder="Nome do usuário (ou vazio para todos)"
         value={userFilter}
         onChangeText={setUserFilter}
+        placeholderTextColor="#94a3b8"
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Nome da chave (ou vazio para todas)"
+        value={keyFilter}
+        onChangeText={setKeyFilter}
         placeholderTextColor="#94a3b8"
       />
 
