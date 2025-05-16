@@ -27,8 +27,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
 import { showToast, toastConfig } from './utils/toast';
-import Ionicons from 'react-native-vector-icons/MaterialIcons';
-
 const isWeb = Platform.OS === 'web';
 const { height } = Dimensions.get('window');
 const Stack = createStackNavigator();

@@ -37,6 +37,7 @@
     "expo-sharing": "~13.1.5",
     "expo-status-bar": "~2.2.3",
     "expo-system-ui": "~5.0.7",
+    "lightningcss": "^1.30.1",
     "native-base": "^3.4.28",
     "react": "19.0.0",
     "react-dom": "19.0.0",
@@ -49,16 +50,25 @@
     "react-native-svg": "15.11.2",
     "react-native-toast-message": "^2.2.1",
     "react-native-vector-icons": "^10.2.0",
-    "react-toastify": "^10.0.5",
+    "react-toastify": "^11.0.5",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.24.0",
     "@types/react": "~19.0.10",
-    "@types/react-native": "^0.73.0",
     "@types/react-native-vector-icons": "^6.4.18",
     "typescript": "^5.6.2"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    },
+    "plugins": [
+      "expo-camera"
+    ]
   },
   "private": true
 }
