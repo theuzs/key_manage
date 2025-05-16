@@ -24,7 +24,7 @@
     "@react-stately/toggle": "3.7.7",
     "@react-types/combobox": "^3.13.4",
     "@react-types/tabs": "3.3.9",
-    "@supabase/supabase-js": "^2.45.4",
+    "@supabase/supabase-js": "^2.49.5-next.5",
     "@xmldom/xmldom": "0.8.10",
     "expo": "^53.0.0",
     "expo-blur": "~14.1.4",
